@@ -1,5 +1,5 @@
-const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Latitude','Longitude','Google Maps Link'];
-const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','latitude','longitude','href'];
+const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Latitude','Longitude','Google Maps Link'];
+const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','latitude','longitude','href'];
 
 document.addEventListener('DOMContentLoaded', function () {
   if (new URLSearchParams(location.search).get('view') === 'tab') {

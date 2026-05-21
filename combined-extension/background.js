@@ -44,7 +44,7 @@ async function processRow(headers, row, idx) {
   const I = (name) => headers.indexOf(name);
   const iTitle = I('Title'), iMaps = I('Google Maps Link');
   const iWeb = I('Website'), iPhone = I('Phone');
-  const iIg  = I('Instagram'), iFb = I('Facebook'), iWa = I('WhatsApp'), iImg = I('Image');
+  const iIg  = I('Instagram'), iFb = I('Facebook'), iWa = I('WhatsApp'), iImg = I('Image'), iAm = I('Amenities');
 
   const title = row[iTitle] || '(no title)';
   const mapsUrl = row[iMaps];
@@ -61,6 +61,7 @@ async function processRow(headers, row, idx) {
   if (iWeb   >= 0 && website && !row[iWeb])   row[iWeb]   = website;
   if (iPhone >= 0 && phone   && !row[iPhone]) row[iPhone] = phone;
   if (iImg   >= 0 && (m.image || '') && !row[iImg]) row[iImg] = m.image;
+  if (iAm    >= 0 && (m.amenities || '') && !row[iAm]) row[iAm] = m.amenities;
   if (iWa    >= 0 && phone   && !row[iWa]) {
     const d = phone.replace(/\D/g, '');
     if (d.length >= 7) row[iWa] = 'https://wa.me/' + d;
