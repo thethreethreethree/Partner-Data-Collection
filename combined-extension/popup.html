@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Partner Collection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { min-width: 620px; padding: 20px; font-family: 'Poppins', sans-serif; }
+    body.tab-view { max-width: 1200px; margin: 0 auto; }
+    body.tab-view #enrich-log { height: 220px; }
+    body.tab-view table { font-size: 13px; }
+    #message { font-size: 16px; padding-top: 20px; padding-bottom: 20px; }
+    .button {
+      padding: 10px 20px; border: none; color: white; background-color: #007BFF;
+      cursor: pointer; transition: background-color 0.3s ease; border-radius: 20px;
+      font-family: 'Poppins', sans-serif;
+    }
+    .button:hover { background-color: #0056b3; }
+    .button:disabled { background-color: #9ec5ff; cursor: not-allowed; }
+    .button.danger { background-color: #dc3545; }
+    .button.danger:hover { background-color: #b02a37; }
+    .input {
+      padding: 8px 15px; margin-right: 10px; border: 1px solid #ddd;
+      border-radius: 20px; font-family: 'Poppins', sans-serif;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+    th, td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
+    th { background-color: #dddddd; text-align: left; padding-top: 10px; padding-bottom: 10px; }
+    h1 { font-weight: 600; font-size: 24px; margin: 0; }
+    h4 { margin: 0; padding-top: 10px; }
+    h4 a { color: #676767; text-decoration: none; }
+    #summary { display: none; margin-top: 20px; padding: 14px 16px; background:#f7f9fc;
+               border:1px solid #e3e8ef; border-radius:12px; font-size:13px; }
+    #summary h3 { margin: 0 0 8px 0; font-size: 14px; font-weight: 700; }
+    #summary .stat-row { display:flex; flex-wrap:wrap; gap:14px 22px; margin-bottom:8px; }
+    #summary .stat { display:flex; flex-direction:column; }
+    #summary .stat-label { color:#676767; font-size:11px; }
+    #summary .stat-value { font-weight:700; font-size:15px; }
+    #enrich-panel { display:none; margin-top:14px; padding:12px 14px; border:1px solid #e3e8ef;
+                    border-radius:10px; background:#fff; }
+    progress { width: 100%; height: 10px; }
+    #enrich-log { background:#111; color:#cfc; font-family:monospace; font-size:11px;
+                  height:120px; overflow:auto; padding:6px; border-radius:4px;
+                  white-space:pre-wrap; margin-top:8px; }
+    .row-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .muted { color:#676767; font-size:11px; }
+  </style>
+</head>
+<body>
+  <h1>&#x1F5FA;&#xFE0F; Partner Collection</h1>
+  <h4>By ERT Collective</h4>
+  <div id="message">Checking URL...</div>
+
+  <div class="row-controls">
+    <button id="actionButton" class="button" disabled>Scrape Google Maps</button>
+    <button id="enrichButton" class="button" disabled>Enrich Data</button>
+    <button id="stopButton" class="button" disabled>Stop</button>
+    <button id="downloadCsvButton" class="button" disabled>Download CSV</button>
+    <input type="text" id="filenameInput" class="input" placeholder="Enter file name" />
+    <label class="muted"><input type="checkbox" id="autoEnrich" checked> auto-enrich after scrape</label>
+    <button id="clearButton" class="button danger" style="margin-left:auto;">Dump / Clear Data</button>
+  </div>
+
+  <div id="summary"></div>
+
+  <div id="enrich-panel">
+    <strong>Enrichment</strong>
+    <div id="enrich-status" class="muted">Idle</div>
+    <progress id="enrich-prog" value="0" max="1"></progress>
+    <div id="enrich-log"></div>
+  </div>
+
+  <table id="resultsTable">
+    <thead><tr></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="popup.js"></script>
+</body>
+</html>

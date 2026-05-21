@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Hotel Data Collector",
+  "version": "0.1.0",
+  "description": "Enrich hotel CSV with website, phone, Instagram, Facebook, and WhatsApp from Google Maps and hotel sites.",
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": [
+    "https://www.google.com/maps/*",
+    "https://maps.google.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Hotel Data Collector" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/maps/*", "https://maps.google.com/*"],
+      "js": ["content_maps.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": ["https://www.google.com/maps/*", "https://maps.google.com/*"],
+      "js": ["content_site.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

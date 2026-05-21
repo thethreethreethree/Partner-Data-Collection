@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: system-ui, sans-serif; width: 360px; padding: 12px; font-size: 13px; }
+  h3 { margin: 4px 0 8px; }
+  button { padding: 6px 10px; margin-right: 6px; cursor: pointer; }
+  #log { background: #111; color: #cfc; font-family: monospace; font-size: 11px;
+         height: 140px; overflow: auto; padding: 6px; border-radius: 4px; white-space: pre-wrap; }
+  .row { margin: 6px 0; }
+  progress { width: 100%; }
+  .muted { color: #666; font-size: 11px; }
+</style>
+</head>
+<body>
+  <h3>Hotel Data Collector</h3>
+  <div class="row">
+    <input type="file" id="csvFile" accept=".csv">
+  </div>
+  <div class="row">
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="export">Export CSV</button>
+    <button id="clear">Clear</button>
+  </div>
+  <div class="row">
+    <progress id="prog" value="0" max="1"></progress>
+    <div id="status" class="muted">Idle</div>
+  </div>
+  <div id="log"></div>
+  <div class="muted">Loads hotels.csv, visits each Google Maps Link to grab Website + Phone, then visits the website to find Instagram, Facebook, and WhatsApp.</div>
+<script src="popup.js"></script>
+</body>
+</html>

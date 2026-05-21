@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Partner Collection",
+  "version": "1.1.0",
+  "description": "Scrape Google Maps search results, then auto-enrich each row with Website, Phone, Instagram, Facebook, and WhatsApp.",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://www.google.com/maps/*",
+    "https://maps.google.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/maps/place/*", "https://maps.google.com/maps/place/*"],
+      "js": ["content_maps.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": ["https://www.google.com/maps/*", "https://maps.google.com/*"],
+      "js": ["content_site.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
