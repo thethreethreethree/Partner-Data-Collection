@@ -1,5 +1,24 @@
-const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Latitude','Longitude','Google Maps Link'];
-const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','latitude','longitude','href'];
+const PITCH_PROMPT = `Prompt: Add a Friendly Pitch Column to a Hostel/Business CSV
+I have a CSV file with business listings (hostels, hotels, restaurants, etc.). The file contains columns like Title, Rating, Reviews count, Amenities, and contact info — but no actual review text or business descriptions.
+Please add a new column called Pitch at the end of the file. For each entry:
+
+Search the web for that specific business by name (and location, if available in the data). Use sources like Booking.com, Hostelworld, Tripadvisor, Wanderlog, Google reviews, and the business's own website.
+Write a 3-5 sentence Pitch that captures the vibe of the place, grounded in what real guests and the business itself say. Each Pitch should:
+
+Lead with the strongest, most appealing quality (location, atmosphere, standout feature)
+Mention specific details that make it memorable (staff names, signature offerings, unique amenities, named pets, themed nights, etc. — whatever guests consistently call out)
+Be friendly and inviting in tone, like a recommendation from a well-traveled friend
+Frame trade-offs positively (e.g., "quiet escape" instead of "far from town"; "simple budget pick" instead of "basic and run-down")
+End with a "best for…" or "ideal if…" line naming the type of traveler it suits
+Stay accurate — never invent features or fabricate quotes
+
+
+For places with very thin online presence (few reviews, no website), write a cautious but still warm Pitch that honestly reflects the low-profile, locally-run feel rather than making things up.
+Before starting, confirm the file has no existing description/review text to work from, and tell me roughly how many searches this will involve so I can confirm.
+Output: save the updated CSV to a downloadable file with all original columns preserved and the new Pitch column appended at the end.`;
+
+const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Pitch','Latitude','Longitude','Google Maps Link'];
+const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','pitch','latitude','longitude','href'];
 
 document.addEventListener('DOMContentLoaded', function () {
   if (new URLSearchParams(location.search).get('view') === 'tab') {
@@ -89,6 +108,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     enrichButton.addEventListener('click', startEnrich);
     stopButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'STOP' }));
+
+    document.getElementById('generatePitchButton').addEventListener('click', async () => {
+      const btn = document.getElementById('generatePitchButton');
+      try {
+        await navigator.clipboard.writeText(PITCH_PROMPT);
+        btn.textContent = 'Copied! Opening Claude…';
+      } catch {
+        // Fallback for clipboard API failures
+        const ta = document.createElement('textarea');
+        ta.value = PITCH_PROMPT;
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); btn.textContent = 'Copied! Opening Claude…'; }
+        catch { btn.textContent = 'Copy failed — opening Claude'; }
+        ta.remove();
+      }
+      chrome.tabs.create({ url: 'https://claude.ai/new', active: true });
+      setTimeout(() => { btn.textContent = 'Generate Pitch'; }, 2500);
+    });
 
     document.getElementById('clearButton').addEventListener('click', async () => {
       if (!confirm('Clear all scraped + enriched data? This cannot be undone.')) return;

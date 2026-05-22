@@ -40,6 +40,26 @@ function askTab(tabId, message, timeoutMs = SCRAPE_TIMEOUT) {
 
 async function closeTab(id) { try { await chrome.tabs.remove(id); } catch {} }
 
+function validIg(url) {
+  const m = (url || '').match(/instagram\.com\/([^\/?#]+)/i);
+  if (!m) return false;
+  const bad = ['p','explore','reel','reels','accounts','about','directory','tv','stories','sharer'];
+  return !bad.includes(m[1].toLowerCase());
+}
+
+// Tier 3: scrape DuckDuckGo for the business's Instagram/Facebook.
+async function searchSocials(query) {
+  const url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query);
+  let tab;
+  try {
+    tab = await openTab(url);
+    await sleep(1200);
+    const res = await askTab(tab.id, { type: 'SCRAPE_SEARCH' }) || {};
+    return res;
+  } catch { return {}; }
+  finally { if (tab) await closeTab(tab.id); }
+}
+
 async function processRow(headers, row, idx) {
   const I = (name) => headers.indexOf(name);
   const iTitle = I('Title'), iMaps = I('Google Maps Link');
@@ -66,10 +86,22 @@ async function processRow(headers, row, idx) {
     const d = phone.replace(/\D/g, '');
     if (d.length >= 7) row[iWa] = 'https://wa.me/' + d;
   }
+  // Tier 1: the "website" may itself be a social/Linktree URL.
+  if (iIg >= 0 && website && /instagram\.com\//i.test(website) && !row[iIg]) {
+    const ig = website.match(/https?:\/\/(www\.)?instagram\.com\/[^\/?#]+/i);
+    if (ig && validIg(ig[0])) row[iIg] = ig[0];
+  }
+  if (iFb >= 0 && website && /facebook\.com\//i.test(website) && !row[iFb]) {
+    const fb = website.match(/https?:\/\/(www\.|m\.)?facebook\.com\/[^\/?#]+/i);
+    if (fb) row[iFb] = fb[0];
+  }
   log(`   maps → website=${website || '-'}  phone=${phone || '-'}`);
 
   const targetSite = (row[iWeb] || '').trim();
-  const real = targetSite && !/google\.com\/aclk|googleadservices/.test(targetSite);
+  // Visit real sites AND link-aggregators (Linktree etc.), but not Google ad redirects
+  // or links that are themselves the IG/FB profile (nothing more to scrape there).
+  const isProfileOnly = /^https?:\/\/(www\.)?(instagram|facebook)\.com\//i.test(targetSite);
+  const real = targetSite && !/google\.com\/aclk|googleadservices/.test(targetSite) && !isProfileOnly;
   if (real) {
     let siteTab;
     try {
@@ -83,6 +115,21 @@ async function processRow(headers, row, idx) {
       log(`   site → ig=${site.instagram||'-'}  fb=${site.facebook||'-'}  wa=${site.whatsapp||'-'}  img=${site.image||'-'}`);
     } catch (e) { log(`   site error: ${e.message}`); }
     finally { if (siteTab) await closeTab(siteTab.id); }
+  }
+
+  // Tier 3: still missing Instagram? Search DuckDuckGo by name (+ location hint).
+  const needIg = iIg >= 0 && !row[iIg];
+  const needFb = iFb >= 0 && !row[iFb];
+  if (needIg || needFb) {
+    const addr = (headers.indexOf('Address') >= 0 ? row[headers.indexOf('Address')] : '') || '';
+    // Add the address as a location hint only if the name doesn't already contain it.
+    const loc = addr && !title.toLowerCase().includes(addr.toLowerCase().slice(0, 8)) ? ' ' + addr : '';
+    const q = `${title}${loc} instagram`;
+    const s = await searchSocials(q);
+    if (needIg && s.instagram) row[iIg] = s.instagram;
+    if (needFb && s.facebook) row[iFb] = s.facebook;
+    log(`   ddg  → ig=${s.instagram || '-'}  fb=${s.facebook || '-'}`);
+    await sleep(1500); // extra throttle for search engine
   }
 }
 
