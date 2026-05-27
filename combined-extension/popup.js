@@ -17,6 +17,32 @@ For places with very thin online presence (few reviews, no website), write a cau
 Before starting, confirm the file has no existing description/review text to work from, and tell me roughly how many searches this will involve so I can confirm.
 Output: save the updated CSV to a downloadable file with all original columns preserved and the new Pitch column appended at the end.`;
 
+// Category terms we recognize in a Google Maps search query. When the
+// user searches "hostels in El Nido", we keep only places whose Industry
+// contains "hostel" (and reject hotels, resorts, etc.).
+const CATEGORY_TERMS = [
+  'hostel','hotel','resort','motel','inn','guesthouse','guest house',
+  'bed and breakfast','b&b','apartment','apartelle','villa','cottage','lodge',
+  'pension','homestay','campsite','glamping',
+  'restaurant','cafe','coffee','bakery','bar','pub','brewery','diner',
+  'spa','gym','salon','barber','clinic','dentist','pharmacy',
+  'museum','gallery','park','beach','dive shop','tour'
+];
+
+function detectQueryCategories(url) {
+  if (!url) return [];
+  const m = url.match(/\/maps\/search\/([^/?]+)/);
+  if (!m) return [];
+  const q = decodeURIComponent(m[1].replace(/\+/g, ' ')).toLowerCase();
+  return CATEGORY_TERMS.filter((t) => new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 's?\\b').test(q));
+}
+
+function matchesCategory(text, cats) {
+  if (!cats.length) return true;
+  const blob = (text || '').toLowerCase();
+  return cats.some((c) => blob.includes(c));
+}
+
 const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Pitch','Latitude','Longitude','Google Maps Link'];
 const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','pitch','latitude','longitude','href'];
 
@@ -81,11 +107,21 @@ document.addEventListener('DOMContentLoaded', function () {
             actionButton.disabled = false; return;
           }
           const all = results[0].result;
+          const searchCats = detectQueryCategories(currentTab.url);
           const kept = all.filter((it) => {
             const r = parseFloat((it.rating || '').toString().replace(',', '.'));
-            return !isNaN(r) && r >= 3.5;
+            if (isNaN(r) || r < 3.5) return false;
+            // Loose category check at scrape time — enrichment will re-check
+            // strictly using the place page's authoritative category.
+            return matchesCategory((it.industry || '') + ' ' + (it.title || ''), searchCats);
           });
+          await chrome.storage.local.set({ searchCats });
           renderSummary(all, kept, all.length - kept.length);
+          if (searchCats.length) {
+            const sumEl = document.getElementById('summary');
+            sumEl.insertAdjacentHTML('beforeend',
+              `<div class="muted" style="margin-top:8px;">Category filter: <strong>${searchCats.join(', ')}</strong></div>`);
+          }
 
           // Convert kept objects → 2D rows in HEADERS order
           const rows = kept.map((it) => KEYS.map((k) => (it[k] != null ? String(it[k]) : '')));

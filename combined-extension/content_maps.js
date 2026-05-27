@@ -39,7 +39,19 @@ function imgScore(url) {
 }
 
 function scrape() {
-  let website = '', phone = '', image = '';
+  let website = '', phone = '', image = '', address = '', category = '';
+
+  // Authoritative address from the place panel.
+  const addrEl = document.querySelector('button[data-item-id="address"], [data-item-id="address"]');
+  if (addrEl) {
+    const lbl = addrEl.getAttribute('aria-label') || addrEl.textContent || '';
+    address = lbl.replace(/^Address:\s*/i, '').trim();
+  }
+
+  // Category / industry — the small button under the title.
+  const catEl = document.querySelector('button[jsaction*="category"], button[jsaction*="pane.rating.category"]');
+  if (catEl) category = (catEl.textContent || '').trim();
+
 
   const candidates = new Set();
   // DOM sources
@@ -87,7 +99,15 @@ function scrape() {
   let amenities = '';
   const main = document.querySelector('[role="main"]');
   if (main) {
-    const text = main.innerText || '';
+    // Source: aria-labels on amenity chips/buttons/icons only. This avoids
+    // false positives from review snippets that mention "pool" or "breakfast"
+    // in passing. Cap label length to skip long review aria-labels.
+    const labels = [];
+    main.querySelectorAll('[aria-label]').forEach((el) => {
+      const lbl = el.getAttribute('aria-label');
+      if (lbl && lbl.length > 0 && lbl.length <= 80) labels.push(lbl);
+    });
+    const text = labels.join(' · ');
     const found = new Set();
     for (const term of AMENITY_TERMS) {
       const re = new RegExp('(^|[^A-Za-z])' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^A-Za-z])', 'i');
@@ -114,7 +134,7 @@ function scrape() {
       if (m2) phone = m2[0].trim();
     }
   }
-  return { website, phone, image, amenities };
+  return { website, phone, image, amenities, address, category };
 }
 
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
@@ -122,8 +142,8 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
     waitFor(() => {
       const d = scrape();
       const sidebarLoaded = !!document.querySelector('[role="main"] h1, [data-item-id]');
-      return (d.website || d.phone || d.image || d.amenities || sidebarLoaded) ? d : null;
-    }, 10000).then((d) => sendResponse(d || { website: '', phone: '', image: '', amenities: '' }));
+      return (d.website || d.phone || d.image || d.amenities || d.address || d.category || sidebarLoaded) ? d : null;
+    }, 10000).then((d) => sendResponse(d || { website: '', phone: '', image: '', amenities: '', address: '', category: '' }));
     return true;
   }
 });

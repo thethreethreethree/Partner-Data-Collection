@@ -47,6 +47,23 @@ function validIg(url) {
   return !bad.includes(m[1].toLowerCase());
 }
 
+// Reject IG handles that don't share a meaningful token with the business name.
+// Used only for low-trust sources (DDG search results).
+function igHandleMatchesName(igUrl, name) {
+  const m = (igUrl || '').match(/instagram\.com\/([^\/?#]+)/i);
+  if (!m) return false;
+  const handle = m[1].toLowerCase().replace(/[^a-z0-9]/g, '');
+  const stop = new Set(['the','and','of','at','in','el','la','le','de','los','las',
+    'hotel','hostel','inn','resort','beach','lodge','villas','villa','suites','suite',
+    'tourist','house','garden','boutique','bay','place','pension','apartelle','room',
+    'rooms','cottages','cottage','cabanas','cabana','travelodge','lodging','reef',
+    'island','frontier']);
+  const all = (name || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+  const meaningful = all.filter((t) => !stop.has(t));
+  const tokens = meaningful.length ? meaningful : all;
+  return tokens.some((t) => handle.includes(t));
+}
+
 // Tier 3: scrape DuckDuckGo for the business's Instagram/Facebook.
 async function searchSocials(query) {
   const url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query);
@@ -65,6 +82,7 @@ async function processRow(headers, row, idx) {
   const iTitle = I('Title'), iMaps = I('Google Maps Link');
   const iWeb = I('Website'), iPhone = I('Phone');
   const iIg  = I('Instagram'), iFb = I('Facebook'), iWa = I('WhatsApp'), iImg = I('Image'), iAm = I('Amenities');
+  const iAddr = I('Address'), iInd = I('Industry');
 
   const title = row[iTitle] || '(no title)';
   const mapsUrl = row[iMaps];
@@ -78,8 +96,22 @@ async function processRow(headers, row, idx) {
 
   const website = (m.website || '').trim();
   const phone   = (m.phone   || '').trim();
-  if (iWeb   >= 0 && website && !row[iWeb])   row[iWeb]   = website;
-  if (iPhone >= 0 && phone   && !row[iPhone]) row[iPhone] = phone;
+  // Place-page data is authoritative — override the scraper's text-regex guesses.
+  if (iWeb   >= 0 && website) row[iWeb]   = website;
+  if (iPhone >= 0 && phone) {
+    row[iPhone] = phone;
+    if (iWa >= 0) {
+      const d = phone.replace(/\D/g, '');
+      // Refresh WhatsApp if missing or it was the placeholder derived from
+      // a previous (possibly wrong) phone — but not if user-set wa.me link.
+      const cur = row[iWa] || '';
+      if (!cur || /^https:\/\/wa\.me\/\d*$/.test(cur)) {
+        row[iWa] = d.length >= 7 ? 'https://wa.me/' + d : '';
+      }
+    }
+  }
+  if (iAddr >= 0 && (m.address || '')) row[iAddr] = m.address;
+  if (iInd  >= 0 && (m.category || '')) row[iInd] = m.category;
   // Image: the place-page photo is hi-res — prefer it over any low-res
   // search-card thumbnail captured during scraping. Only keep an existing
   // value if it's already a non-Google (e.g. website) image.
@@ -88,11 +120,7 @@ async function processRow(headers, row, idx) {
     const curIsGoogleThumb = /googleusercontent\.com|ggpht\.com/.test(cur);
     if (!cur || curIsGoogleThumb) row[iImg] = m.image;
   }
-  if (iAm    >= 0 && (m.amenities || '') && !row[iAm]) row[iAm] = m.amenities;
-  if (iWa    >= 0 && phone   && !row[iWa]) {
-    const d = phone.replace(/\D/g, '');
-    if (d.length >= 7) row[iWa] = 'https://wa.me/' + d;
-  }
+  if (iAm    >= 0 && (m.amenities || '')) row[iAm] = m.amenities;
   // Tier 1: the "website" may itself be a social/Linktree URL.
   if (iIg >= 0 && website && /instagram\.com\//i.test(website) && !row[iIg]) {
     const ig = website.match(/https?:\/\/(www\.)?instagram\.com\/[^\/?#]+/i);
@@ -133,9 +161,16 @@ async function processRow(headers, row, idx) {
     const loc = addr && !title.toLowerCase().includes(addr.toLowerCase().slice(0, 8)) ? ' ' + addr : '';
     const q = `${title}${loc} instagram`;
     const s = await searchSocials(q);
-    if (needIg && s.instagram) row[iIg] = s.instagram;
+    let igAccepted = '';
+    if (needIg && s.instagram) {
+      if (igHandleMatchesName(s.instagram, title)) {
+        row[iIg] = s.instagram; igAccepted = s.instagram;
+      } else {
+        log(`   ddg  ✗ ig rejected (no name match): ${s.instagram}`);
+      }
+    }
     if (needFb && s.facebook) row[iFb] = s.facebook;
-    log(`   ddg  → ig=${s.instagram || '-'}  fb=${s.facebook || '-'}`);
+    log(`   ddg  → ig=${igAccepted || '-'}  fb=${s.facebook || '-'}`);
     await sleep(1500); // extra throttle for search engine
   }
 }
@@ -154,6 +189,27 @@ async function run() {
     tick();
     await sleep(800);
   }
+  // Final strict category filter — using authoritative Industry from the place page.
+  try {
+    const { searchCats } = await chrome.storage.local.get('searchCats');
+    if (searchCats && searchCats.length) {
+      const iInd = headers.indexOf('Industry');
+      const iTitle = headers.indexOf('Title');
+      const before = rows.length;
+      const kept = rows.filter((r) => {
+        const blob = ((r[iInd] || '') + ' ' + (r[iTitle] || '')).toLowerCase();
+        return searchCats.some((c) => blob.includes(c));
+      });
+      const removed = before - kept.length;
+      if (removed > 0) {
+        await chrome.storage.local.set({ rows: kept, progress: kept.length,
+          status: `${kept.length} rows · ${removed} removed by category filter` });
+        log(`Category filter (${searchCats.join(', ')}) removed ${removed} mismatched rows.`);
+        tick();
+      }
+    }
+  } catch (e) { log(`category filter error: ${e.message}`); }
+
   RUNNING = false;
   log('Enrichment done.');
   done();
