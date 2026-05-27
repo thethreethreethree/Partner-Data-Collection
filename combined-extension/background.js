@@ -1,6 +1,22 @@
 let RUNNING = false;
 let ABORT = false;
 
+// Mirror of popup.js CATEGORY_TERMS — used for conflict-only filtering.
+const CATEGORY_TERMS = [
+  'hostel','hotel','resort','motel','inn','guesthouse','guest house',
+  'bed and breakfast','b&b','apartment','apartelle','villa','cottage','lodge',
+  'pension','homestay','campsite','glamping',
+  'restaurant','cafe','coffee','bakery','bar','pub','brewery','diner',
+  'spa','gym','salon','barber','clinic','dentist','pharmacy',
+  'museum','gallery','park','beach','dive shop','tour'
+];
+function conflictsWithCategory(industry, cats) {
+  if (!cats.length || !industry) return false;
+  const ind = industry.toLowerCase();
+  if (cats.some((c) => ind.includes(c))) return false;        // matches → keep
+  return CATEGORY_TERMS.some((c) => !cats.includes(c) && ind.includes(c)); // says another category → drop
+}
+
 const log  = (text) => chrome.runtime.sendMessage({ type: 'LOG',  text }).catch(()=>{});
 const tick = ()     => chrome.runtime.sendMessage({ type: 'TICK' }).catch(()=>{});
 const done = ()     => chrome.runtime.sendMessage({ type: 'DONE' }).catch(()=>{});
@@ -214,9 +230,13 @@ async function run() {
       const iInd = headers.indexOf('Industry');
       const iTitle = headers.indexOf('Title');
       const before = rows.length;
+      // Conflict-only: drop a row ONLY if its authoritative Industry clearly
+      // names a different category (e.g. "Restaurant" when we asked for "hotel").
+      // A row whose Title contains the queried category always passes.
       const kept = rows.filter((r) => {
-        const blob = ((r[iInd] || '') + ' ' + (r[iTitle] || '')).toLowerCase();
-        return searchCats.some((c) => blob.includes(c));
+        const title = (r[iTitle] || '').toLowerCase();
+        if (searchCats.some((c) => title.includes(c))) return true;
+        return !conflictsWithCategory(r[iInd] || '', searchCats);
       });
       const removed = before - kept.length;
       if (removed > 0) {
