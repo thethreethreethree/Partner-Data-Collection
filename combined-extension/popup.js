@@ -43,6 +43,18 @@ function matchesCategory(text, cats) {
   return cats.some((c) => blob.includes(c));
 }
 
+// Lenient scrape-time check: only reject if the card's industry has a
+// CONFLICTING category term (e.g. "Restaurant" when we want "hotel").
+// Empty / unknown / matching industries pass — enrichment filters strictly.
+function conflictsWithCategory(industry, cats) {
+  if (!cats.length || !industry) return false;
+  const ind = industry.toLowerCase();
+  const hasMatch = cats.some((c) => ind.includes(c));
+  if (hasMatch) return false;
+  const hasOther = CATEGORY_TERMS.some((c) => !cats.includes(c) && ind.includes(c));
+  return hasOther;
+}
+
 const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Pitch','Latitude','Longitude','Google Maps Link'];
 const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','pitch','latitude','longitude','href'];
 
@@ -111,9 +123,10 @@ document.addEventListener('DOMContentLoaded', function () {
           const kept = all.filter((it) => {
             const r = parseFloat((it.rating || '').toString().replace(',', '.'));
             if (isNaN(r) || r < 3.5) return false;
-            // Loose category check at scrape time — enrichment will re-check
-            // strictly using the place page's authoritative category.
-            return matchesCategory((it.industry || '') + ' ' + (it.title || ''), searchCats);
+            // Only reject at scrape time if the card industry CONFLICTS with
+            // the query (says "Restaurant" when we want "hotel"). Empty or
+            // ambiguous industries pass — enrichment filters strictly later.
+            return !conflictsWithCategory(it.industry, searchCats);
           });
           await chrome.storage.local.set({ searchCats });
           renderSummary(all, kept, all.length - kept.length);
