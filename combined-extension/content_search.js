@@ -42,10 +42,21 @@ function scrapeResults() {
   return { instagram, facebook };
 }
 
+function isDdgCaptcha() {
+  const t = (document.body && document.body.innerText) || '';
+  if (/anomaly|automated requests|unusual traffic|please verify/i.test(t)) return true;
+  if (document.querySelector('form[action*="captcha"], form[action*="anomaly"]')) return true;
+  // No results AND no result wrapper at all suggests a block page.
+  const hasResults = !!document.querySelector('.result, .web-result, .result__a, a[href*="uddg="]');
+  return !hasResults;
+}
+
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   if (msg.type === 'SCRAPE_SEARCH') {
-    // Results are server-rendered; small delay covers slow loads.
-    setTimeout(() => sendResponse(scrapeResults()), 400);
+    setTimeout(() => {
+      if (isDdgCaptcha()) sendResponse({ captcha: true });
+      else sendResponse(scrapeResults());
+    }, 400);
     return true;
   }
 });

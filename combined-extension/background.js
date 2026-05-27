@@ -72,9 +72,16 @@ async function searchSocials(query) {
     tab = await openTab(url);
     await sleep(1200);
     const res = await askTab(tab.id, { type: 'SCRAPE_SEARCH' }) || {};
+    if (res && res.captcha) {
+      try { await chrome.tabs.update(tab.id, { active: true }); } catch {}
+      return res; // leave the tab open so the user can solve it
+    }
+    await closeTab(tab.id);
     return res;
-  } catch { return {}; }
-  finally { if (tab) await closeTab(tab.id); }
+  } catch (e) {
+    if (tab) await closeTab(tab.id);
+    return {};
+  }
 }
 
 async function processRow(headers, row, idx) {
@@ -92,6 +99,12 @@ async function processRow(headers, row, idx) {
   const mapsTab = await openTab(mapsUrl);
   await sleep(1500);
   const m = await askTab(mapsTab.id, { type: 'SCRAPE_MAPS' }) || {};
+  if (m && m.captcha) {
+    try { await chrome.tabs.update(mapsTab.id, { active: true }); } catch {}
+    ABORT = true;
+    log(`⚠️ Google Maps captcha detected. Solve it in the open tab, then click Enrich Data to resume.`);
+    return;
+  }
   await closeTab(mapsTab.id);
 
   const website = (m.website || '').trim();
@@ -161,6 +174,11 @@ async function processRow(headers, row, idx) {
     const loc = addr && !title.toLowerCase().includes(addr.toLowerCase().slice(0, 8)) ? ' ' + addr : '';
     const q = `${title}${loc} instagram`;
     const s = await searchSocials(q);
+    if (s && s.captcha) {
+      ABORT = true;
+      log(`⚠️ DuckDuckGo captcha detected. Solve it in the open tab, then click Enrich Data to resume.`);
+      return;
+    }
     let igAccepted = '';
     if (needIg && s.instagram) {
       if (igHandleMatchesName(s.instagram, title)) {
@@ -209,6 +227,26 @@ async function run() {
       }
     }
   } catch (e) { log(`category filter error: ${e.message}`); }
+
+  // Completion report: per-field fill rate across the final rows.
+  try {
+    const { rows: finalRows = [], headers: finalHeaders = [] } =
+      await chrome.storage.local.get(['rows', 'headers']);
+    if (finalRows.length) {
+      const pct = (col) => {
+        const i = finalHeaders.indexOf(col);
+        if (i < 0) return null;
+        const n = finalRows.filter((r) => (r[i] || '').toString().trim()).length;
+        return Math.round(100 * n / finalRows.length);
+      };
+      const cols = ['Image','Instagram','Facebook','Phone','Website','WhatsApp','Amenities','Address','Industry'];
+      const parts = cols.map((c) => {
+        const p = pct(c);
+        return p == null ? null : `${c} ${p}%`;
+      }).filter(Boolean);
+      log(`Completion (${finalRows.length} rows): ${parts.join(' · ')}`);
+    }
+  } catch (e) { log(`report error: ${e.message}`); }
 
   RUNNING = false;
   log('Enrichment done.');

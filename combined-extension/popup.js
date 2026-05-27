@@ -112,28 +112,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     actionButton.addEventListener('click', function () {
       actionButton.disabled = true;
+      const origLabel = actionButton.textContent;
+      actionButton.textContent = 'Scrolling Maps…';
       chrome.scripting.executeScript(
         { target: { tabId: currentTab.id }, function: scrapeData },
         async function (results) {
+          actionButton.textContent = origLabel;
           if (!results || !results[0] || !results[0].result) {
             actionButton.disabled = false; return;
           }
           const all = results[0].result;
           const searchCats = detectQueryCategories(currentTab.url);
-          const kept = all.filter((it) => {
+          const rated = all.filter((it) => {
             const r = parseFloat((it.rating || '').toString().replace(',', '.'));
             if (isNaN(r) || r < 3.5) return false;
-            // Only reject at scrape time if the card industry CONFLICTS with
-            // the query (says "Restaurant" when we want "hotel"). Empty or
-            // ambiguous industries pass — enrichment filters strictly later.
             return !conflictsWithCategory(it.industry, searchCats);
           });
+          // Dedupe by Google place ID (from the !1s<hex>:<hex> URL token);
+          // fall back to title + coordinates when no place ID is present.
+          const seen = new Set();
+          const kept = [];
+          for (const it of rated) {
+            const m = (it.href || '').match(/!1s([0-9a-fx:]+)/i);
+            const key = (m ? m[1].toLowerCase() : '') ||
+                        ((it.title || '') + '|' + (it.latitude || '') + ',' + (it.longitude || ''));
+            if (seen.has(key)) continue;
+            seen.add(key);
+            kept.push(it);
+          }
+          const dupsRemoved = rated.length - kept.length;
           await chrome.storage.local.set({ searchCats });
           renderSummary(all, kept, all.length - kept.length);
-          if (searchCats.length) {
+          if (searchCats.length || dupsRemoved) {
             const sumEl = document.getElementById('summary');
+            const bits = [];
+            if (searchCats.length) bits.push(`Category filter: <strong>${searchCats.join(', ')}</strong>`);
+            if (dupsRemoved) bits.push(`Removed <strong>${dupsRemoved}</strong> duplicate${dupsRemoved === 1 ? '' : 's'}`);
             sumEl.insertAdjacentHTML('beforeend',
-              `<div class="muted" style="margin-top:8px;">Category filter: <strong>${searchCats.join(', ')}</strong></div>`);
+              `<div class="muted" style="margin-top:8px;">${bits.join(' · ')}</div>`);
           }
 
           // Convert kept objects → 2D rows in HEADERS order
@@ -274,7 +290,24 @@ function toCSV(rows) {
 }
 
 // === Runs in the Google Maps search page ===
-function scrapeData() {
+async function scrapeData() {
+  // Auto-scroll the results feed until the list stops growing or Google
+  // shows "You've reached the end of the list." — Maps virtualizes the
+  // panel, so without this we'd only see the ~20 cards initially rendered.
+  const feed = document.querySelector('[role="feed"]');
+  if (feed) {
+    let lastCount = 0, stable = 0;
+    for (let i = 0; i < 120; i++) {
+      feed.scrollTop = feed.scrollHeight;
+      await new Promise((r) => setTimeout(r, 900));
+      const count = feed.querySelectorAll('a[href^="https://www.google.com/maps/place"]').length;
+      const end = /you('|’)?ve reached the end of the list/i.test(feed.innerText || '');
+      if (count === lastCount) stable++; else stable = 0;
+      lastCount = count;
+      if (end || stable >= 3) break;
+    }
+  }
+
   const links = Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"]'));
   return links.map((link) => {
     const container = link.closest('[jsaction*="mouseover:pane"]');

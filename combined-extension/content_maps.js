@@ -137,8 +137,15 @@ function scrape() {
   return { website, phone, image, amenities, address, category };
 }
 
+function isMapsCaptcha() {
+  if (/\/sorry\//i.test(location.pathname)) return true;
+  const t = (document.body && document.body.innerText) || '';
+  return /unusual traffic|systems have detected unusual|verify (you are|that you're) not a robot|i'm not a robot/i.test(t);
+}
+
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   if (msg.type === 'SCRAPE_MAPS') {
+    if (isMapsCaptcha()) { sendResponse({ captcha: true }); return true; }
     waitFor(() => {
       const d = scrape();
       const sidebarLoaded = !!document.querySelector('[role="main"] h1, [data-item-id]');
