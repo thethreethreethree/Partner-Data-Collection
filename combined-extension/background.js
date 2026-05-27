@@ -80,7 +80,14 @@ async function processRow(headers, row, idx) {
   const phone   = (m.phone   || '').trim();
   if (iWeb   >= 0 && website && !row[iWeb])   row[iWeb]   = website;
   if (iPhone >= 0 && phone   && !row[iPhone]) row[iPhone] = phone;
-  if (iImg   >= 0 && (m.image || '') && !row[iImg]) row[iImg] = m.image;
+  // Image: the place-page photo is hi-res — prefer it over any low-res
+  // search-card thumbnail captured during scraping. Only keep an existing
+  // value if it's already a non-Google (e.g. website) image.
+  if (iImg >= 0 && (m.image || '')) {
+    const cur = row[iImg] || '';
+    const curIsGoogleThumb = /googleusercontent\.com|ggpht\.com/.test(cur);
+    if (!cur || curIsGoogleThumb) row[iImg] = m.image;
+  }
   if (iAm    >= 0 && (m.amenities || '') && !row[iAm]) row[iAm] = m.amenities;
   if (iWa    >= 0 && phone   && !row[iWa]) {
     const d = phone.replace(/\D/g, '');

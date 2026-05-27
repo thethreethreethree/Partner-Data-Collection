@@ -16,32 +16,55 @@ function waitFor(predicate, timeout = 10000, interval = 200) {
 function upgradeGoogleImg(url) {
   if (!url) return url;
   if (/googleusercontent\.com|ggpht\.com/.test(url)) {
-    // Swap size suffix (e.g. =w114-h86-k-no, =s86, =w408-h272-k-no-pi-...) for high-res.
-    return url.replace(/=[^/?#]+$/, '=w1600-h1200-k-no');
+    // Force a large size. URLs end in a size token like =w114-h86-k-no, =s86,
+    // =w408-h272-k-no-pi... — replace it; if none present, append one.
+    return /=[^/]*$/.test(url)
+      ? url.replace(/=[^/]*$/, '=w2048-h1536-k-no')
+      : url + '=w2048-h1536-k-no';
   }
   return url;
 }
 
+// Score a candidate photo URL: real Google place photos (lh3.../p/ or gps-cs-s)
+// are full-res; generic profile/avatar URLs (=s44, a-/AC...) are tiny.
+function imgScore(url) {
+  if (!url) return -1;
+  let s = 0;
+  if (/googleusercontent\.com\/(p|gps-cs|gps-proxy)/.test(url)) s += 100;
+  else if (/googleusercontent\.com|ggpht\.com/.test(url)) s += 40;
+  const wm = url.match(/[=&]w(\d+)/); if (wm) s += Math.min(50, parseInt(wm[1], 10) / 40);
+  if (/=s\d/.test(url) && !/=w/.test(url)) s -= 30; // square avatar token
+  if (/\/a-?\//.test(url) || /=s(32|44|48|64|72|96)\b/.test(url)) s -= 60; // user avatars
+  return s;
+}
+
 function scrape() {
   let website = '', phone = '', image = '';
-  // Hero photo on the place page — try img tags, then background-image styles.
-  const candidates = Array.from(document.querySelectorAll(
+
+  const candidates = new Set();
+  // DOM sources
+  document.querySelectorAll(
     'button[jsaction*="heroHeaderImage"] img, button[aria-label^="Photo of"] img, ' +
     'img[src*="googleusercontent.com"], img[src*="ggpht.com"], ' +
     'div[role="img"][style*="background-image"], button[style*="background-image"], a[style*="background-image"]'
-  ));
-  for (const el of candidates) {
-    let src = '';
-    if (el.tagName === 'IMG') src = el.src;
+  ).forEach((el) => {
+    if (el.tagName === 'IMG' && el.src) candidates.add(el.src);
     else {
       const bg = el.getAttribute('style') || '';
       const m = bg.match(/url\(["']?(https?:[^"')]+)/);
-      if (m) src = m[1];
+      if (m) candidates.add(m[1]);
     }
-    if (src && /googleusercontent\.com|ggpht\.com/.test(src)) { image = src; break; }
-    if (src && !image) image = src; // fallback
-  }
-  image = upgradeGoogleImg(image);
+  });
+  // The place page embeds many photo URLs in inline scripts — always present.
+  const html = document.documentElement.innerHTML;
+  const re = /https:\/\/(?:lh\d+\.googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_\-]+|streetviewpixels[^"\\\s]+)[^"\\\s]*/g;
+  let mm; let count = 0;
+  while ((mm = re.exec(html)) && count < 50) { candidates.add(mm[0]); count++; }
+
+  // Pick the highest-scoring candidate, then force high-res.
+  let best = '', bestScore = -1;
+  candidates.forEach((u) => { const sc = imgScore(u); if (sc > bestScore) { bestScore = sc; best = u; } });
+  image = upgradeGoogleImg(best);
 
   // Amenities — Maps shows these as chips/list items in the sidebar with
   // an icon + label. Match against a known set of labels found in the

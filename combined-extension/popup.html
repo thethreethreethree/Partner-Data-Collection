@@ -1,79 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
   <title>Partner Collection</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { min-width: 620px; padding: 20px; font-family: 'Poppins', sans-serif; }
-    body.tab-view { max-width: 1200px; margin: 0 auto; }
-    body.tab-view #enrich-log { height: 220px; }
-    body.tab-view table { font-size: 13px; }
-    #message { font-size: 16px; padding-top: 20px; padding-bottom: 20px; }
+    :root {
+      --bg: #eceef2;
+      --surface: #ffffff;
+      --surface-2: #f5f6f8;
+      --border: #dde0e6;
+      --text: #181a1f;
+      --muted: #6b7180;
+      --brand: #e8973a;        /* amber / copper accent */
+      --brand-2: #f0b357;
+      --brand-ink: #b9701f;
+      --ink: #20242c;          /* gunmetal for dark buttons */
+      --ink-2: #2b3038;
+      --success: #2f9e6f;
+      --danger: #d2483f;
+      --shadow: 0 12px 30px -14px rgba(24, 26, 31, .42);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-width: 660px; margin: 0; padding: 18px;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 380px at 100% -10%, rgba(232,151,58,.16), transparent 60%),
+        radial-gradient(700px 320px at -10% 0%, rgba(32,36,44,.10), transparent 55%),
+        var(--bg);
+    }
+    body.tab-view { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    body.tab-view #enrich-log { height: 240px; }
+
+    /* Header */
+    .app-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px; margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--ink), var(--ink-2));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.06);
+      border-top: 2px solid var(--brand);
+    }
+    .app-header .logo {
+      width: 42px; height: 42px; flex: 0 0 42px;
+      display: grid; place-items: center; font-size: 22px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 12px;
+      box-shadow: 0 6px 14px -6px rgba(232,151,58,.7);
+    }
+    .app-header h1 { font-size: 19px; font-weight: 800; margin: 0; letter-spacing: -.02em; }
+    .app-header p { margin: 2px 0 0; font-size: 12px; opacity: .7; font-weight: 500; }
+
+    /* Cards */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    #message {
+      font-size: 13.5px; font-weight: 500; color: var(--muted);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    }
+    #message a { color: var(--brand-ink); font-weight: 600; text-decoration: none; }
+    #message a:hover { text-decoration: underline; }
+
+    /* Buttons */
+    .row-controls { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
     .button {
-      padding: 10px 20px; border: none; color: white; background-color: #007BFF;
-      cursor: pointer; transition: background-color 0.3s ease; border-radius: 20px;
-      font-family: 'Poppins', sans-serif;
+      appearance: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      padding: 10px 16px; border-radius: 11px; color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2)); position: relative;
+      transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease, opacity .2s ease;
+      box-shadow: 0 6px 14px -8px rgba(232,151,58,.85);
     }
-    .button:hover { background-color: #0056b3; }
-    .button:disabled { background-color: #9ec5ff; cursor: not-allowed; }
-    .button.danger { background-color: #dc3545; }
-    .button.danger:hover { background-color: #b02a37; }
+    .button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 18px -8px rgba(232,151,58,.9); }
+    .button:active:not(:disabled) { transform: translateY(0); }
+    .button:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
+    .button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+    .button.ghost {
+      background: var(--ink); color: #fff;
+      border: 1px solid rgba(255,255,255,.08); box-shadow: 0 6px 14px -10px rgba(24,26,31,.9);
+    }
+    .button.ghost:hover:not(:disabled) { background: var(--ink-2); }
+    .button.success { background: var(--success); box-shadow: 0 6px 14px -8px rgba(22,165,113,.8); }
+    .button.danger  { background: var(--danger);  box-shadow: 0 6px 14px -8px rgba(239,69,101,.8); }
+    .button .ico { margin-right: 6px; }
+
     .input {
-      padding: 8px 15px; margin-right: 10px; border: 1px solid #ddd;
-      border-radius: 20px; font-family: 'Poppins', sans-serif;
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: 11px;
+      font-family: inherit; font-size: 13px; background: var(--surface-2); color: var(--text);
+      transition: border-color .2s ease, box-shadow .2s ease; min-width: 150px;
     }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-    th, td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
-    th { background-color: #dddddd; text-align: left; padding-top: 10px; padding-bottom: 10px; }
-    h1 { font-weight: 600; font-size: 24px; margin: 0; }
-    h4 { margin: 0; padding-top: 10px; }
-    h4 a { color: #676767; text-decoration: none; }
-    #summary { display: none; margin-top: 20px; padding: 14px 16px; background:#f7f9fc;
-               border:1px solid #e3e8ef; border-radius:12px; font-size:13px; }
-    #summary h3 { margin: 0 0 8px 0; font-size: 14px; font-weight: 700; }
-    #summary .stat-row { display:flex; flex-wrap:wrap; gap:14px 22px; margin-bottom:8px; }
-    #summary .stat { display:flex; flex-direction:column; }
-    #summary .stat-label { color:#676767; font-size:11px; }
-    #summary .stat-value { font-weight:700; font-size:15px; }
-    #enrich-panel { display:none; margin-top:14px; padding:12px 14px; border:1px solid #e3e8ef;
-                    border-radius:10px; background:#fff; }
-    progress { width: 100%; height: 10px; }
-    #enrich-log { background:#111; color:#cfc; font-family:monospace; font-size:11px;
-                  height:120px; overflow:auto; padding:6px; border-radius:4px;
-                  white-space:pre-wrap; margin-top:8px; }
-    .row-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-    .muted { color:#676767; font-size:11px; }
+    .input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(232,151,58,.18); }
+
+    .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); font-weight: 500; cursor: pointer; }
+    .toggle input { accent-color: var(--brand); width: 15px; height: 15px; }
+    .spacer { margin-left: auto; }
+
+    /* Summary */
+    #summary { display: none; }
+    #summary h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
+    #summary .stat-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    #summary .stat {
+      flex: 1 1 120px; display: flex; flex-direction: column; gap: 2px;
+      padding: 12px 14px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 12px;
+    }
+    #summary .stat-label { color: var(--muted); font-size: 11px; font-weight: 500; }
+    #summary .stat-value { font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+
+    /* Enrichment */
+    #enrich-panel { display: none; }
+    #enrich-panel .panel-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+    #enrich-panel .panel-head strong { font-size: 13px; font-weight: 700; }
+    #enrich-status { font-size: 12px; color: var(--muted); font-weight: 500; }
+    progress {
+      width: 100%; height: 8px; -webkit-appearance: none; appearance: none; border: none; border-radius: 99px; overflow: hidden; background: #ececf6;
+    }
+    progress::-webkit-progress-bar { background: #ececf6; border-radius: 99px; }
+    progress::-webkit-progress-value { background: linear-gradient(90deg, var(--brand-ink), var(--brand)); border-radius: 99px; }
+    #enrich-log {
+      background: #14161b; color: #f0b357; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 11px; line-height: 1.55; height: 150px; overflow: auto;
+      padding: 12px; border-radius: 11px; white-space: pre-wrap; margin-top: 10px;
+    }
+
+    /* Table */
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 9px 11px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface-2); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); position: sticky; top: 0; }
+    tbody tr:hover { background: var(--surface-2); }
+    tbody tr:last-child td { border-bottom: none; }
   </style>
 </head>
 <body>
-  <h1>&#x1F5FA;&#xFE0F; Partner Collection</h1>
-  <h4>By ERT Collective</h4>
-  <div id="message">Checking URL...</div>
+  <header class="app-header">
+    <div class="logo">&#x1F5FA;&#xFE0F;</div>
+    <div>
+      <h1>Partner Collection</h1>
+      <p>By ERT Collective</p>
+    </div>
+  </header>
 
-  <div class="row-controls">
-    <button id="actionButton" class="button" disabled>Scrape Google Maps</button>
-    <button id="enrichButton" class="button" disabled>Enrich Data</button>
-    <button id="stopButton" class="button" disabled>Stop</button>
-    <button id="downloadCsvButton" class="button" disabled>Download CSV</button>
-    <button id="generatePitchButton" class="button">Generate Pitch</button>
-    <input type="text" id="filenameInput" class="input" placeholder="Enter file name" />
-    <label class="muted"><input type="checkbox" id="autoEnrich" checked> auto-enrich after scrape</label>
-    <button id="clearButton" class="button danger" style="margin-left:auto;">Dump / Clear Data</button>
+  <div class="card">
+    <div id="message">Checking URL...</div>
+    <div class="row-controls">
+      <button id="actionButton" class="button" disabled>Scrape Google Maps</button>
+      <button id="enrichButton" class="button ghost" disabled>Enrich Data</button>
+      <button id="stopButton" class="button ghost" disabled>Stop</button>
+      <button id="downloadCsvButton" class="button success" disabled>Download CSV</button>
+      <button id="generatePitchButton" class="button ghost">Generate Pitch</button>
+      <input type="text" id="filenameInput" class="input" placeholder="Enter file name" />
+      <label class="toggle"><input type="checkbox" id="autoEnrich" checked> auto-enrich after scrape</label>
+      <button id="clearButton" class="button danger spacer">Dump / Clear Data</button>
+    </div>
   </div>
 
-  <div id="summary"></div>
+  <div id="summary" class="card"></div>
 
-  <div id="enrich-panel">
-    <strong>Enrichment</strong>
-    <div id="enrich-status" class="muted">Idle</div>
+  <div id="enrich-panel" class="card">
+    <div class="panel-head">
+      <strong>Enrichment</strong>
+      <div id="enrich-status">Idle</div>
+    </div>
     <progress id="enrich-prog" value="0" max="1"></progress>
     <div id="enrich-log"></div>
   </div>
 
-  <table id="resultsTable">
-    <thead><tr></tr></thead>
-    <tbody></tbody>
-  </table>
+  <div class="table-wrap">
+    <table id="resultsTable">
+      <thead><tr></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script src="popup.js"></script>
 </body>
