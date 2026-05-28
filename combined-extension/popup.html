@@ -158,10 +158,28 @@
       <button id="enrichButton" class="button ghost" disabled>Enrich Data</button>
       <button id="stopButton" class="button ghost" disabled>Stop</button>
       <button id="downloadCsvButton" class="button success" disabled>Download CSV</button>
+      <button id="pushAdminButton" class="button success" disabled>Push to Admin</button>
+      <button id="settingsButton" class="button ghost" title="Admin endpoint settings">⚙</button>
       <button id="generatePitchButton" class="button ghost">Generate Pitch</button>
       <input type="text" id="filenameInput" class="input" placeholder="Enter file name" />
       <label class="toggle"><input type="checkbox" id="autoEnrich" checked> auto-enrich after scrape</label>
       <button id="clearButton" class="button danger spacer">Dump / Clear Data</button>
+    </div>
+  </div>
+
+  <div id="settings-panel" class="card" style="display:none;">
+    <strong style="font-size:13px;">Admin endpoint</strong>
+    <p class="muted" style="margin:6px 0 10px; font-size:12px;">
+      Push scraped rows to your WAVIVI admin. Stored locally in this browser only.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <input id="apiUrlInput" class="input" placeholder="https://your-site.vercel.app/api/admin/stays/ingest" />
+      <input id="apiTokenInput" class="input" type="password" placeholder="INGEST_TOKEN" />
+      <input id="regionIdInput" class="input" placeholder="region_id (optional, e.g. el_nido_palawan_philippines)" />
+      <div style="display:flex; gap:8px;">
+        <button id="saveSettingsButton" class="button">Save</button>
+        <button id="closeSettingsButton" class="button ghost">Close</button>
+      </div>
     </div>
   </div>
 

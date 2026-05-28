@@ -105,12 +105,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Restore prior state (so closing/reopening popup keeps the table + enrichment progress)
-    chrome.storage.local.get(['rows','headers','progress','status','autoEnrich'], (s) => {
+    chrome.storage.local.get(['rows','headers','progress','status','autoEnrich','adminApiUrl','adminApiToken'], (s) => {
       if (typeof s.autoEnrich === 'boolean') autoEnrichCb.checked = s.autoEnrich;
       if (s.rows && s.headers) {
         renderTable(s.headers, s.rows);
         downloadCsvBtn.disabled = false;
         enrichButton.disabled = false;
+        const pushBtn = document.getElementById('pushAdminButton');
+        if (pushBtn) pushBtn.disabled = !(s.adminApiUrl && s.adminApiToken);
         enrichPanel.style.display = 'block';
         enrichProg.max = s.rows.length;
         enrichProg.value = s.progress || 0;
@@ -173,6 +175,11 @@ document.addEventListener('DOMContentLoaded', function () {
           renderTable(HEADERS, rows);
           downloadCsvBtn.disabled = rows.length === 0;
           enrichButton.disabled   = rows.length === 0;
+          {
+            const { adminApiUrl, adminApiToken } = await chrome.storage.local.get(['adminApiUrl','adminApiToken']);
+            const pushBtn = document.getElementById('pushAdminButton');
+            if (pushBtn) pushBtn.disabled = rows.length === 0 || !adminApiUrl || !adminApiToken;
+          }
           enrichPanel.style.display = 'block';
           enrichProg.max = rows.length || 1;
           enrichProg.value = 0;
@@ -185,6 +192,84 @@ document.addEventListener('DOMContentLoaded', function () {
 
     enrichButton.addEventListener('click', startEnrich);
     stopButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'STOP' }));
+
+    // --- Admin push settings (endpoint + token + optional region) ---
+    const settingsPanel = document.getElementById('settings-panel');
+    const apiUrlInput = document.getElementById('apiUrlInput');
+    const apiTokenInput = document.getElementById('apiTokenInput');
+    const regionIdInput = document.getElementById('regionIdInput');
+    const pushAdminButton = document.getElementById('pushAdminButton');
+
+    chrome.storage.local.get(['adminApiUrl','adminApiToken','adminRegionId'], (s) => {
+      apiUrlInput.value   = s.adminApiUrl   || '';
+      apiTokenInput.value = s.adminApiToken || '';
+      regionIdInput.value = s.adminRegionId || '';
+      pushAdminButton.disabled = !s.adminApiUrl || !s.adminApiToken;
+    });
+
+    document.getElementById('settingsButton').addEventListener('click', () => {
+      settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+    });
+    document.getElementById('closeSettingsButton').addEventListener('click', () => {
+      settingsPanel.style.display = 'none';
+    });
+    document.getElementById('saveSettingsButton').addEventListener('click', async () => {
+      await chrome.storage.local.set({
+        adminApiUrl:   apiUrlInput.value.trim(),
+        adminApiToken: apiTokenInput.value.trim(),
+        adminRegionId: regionIdInput.value.trim(),
+      });
+      pushAdminButton.disabled = !apiUrlInput.value.trim() || !apiTokenInput.value.trim() ||
+                                  !(await chrome.storage.local.get('rows')).rows;
+      settingsPanel.style.display = 'none';
+      enrichLog.textContent += 'Admin endpoint settings saved.\n';
+    });
+
+    pushAdminButton.addEventListener('click', async () => {
+      const { headers, rows, adminApiUrl, adminApiToken, adminRegionId } =
+        await chrome.storage.local.get([
+          'headers','rows','adminApiUrl','adminApiToken','adminRegionId',
+        ]);
+      if (!rows || !headers) { alert('No rows to push.'); return; }
+      if (!adminApiUrl || !adminApiToken) { alert('Set the admin endpoint and token first (⚙).'); return; }
+
+      const objects = rows.map((r) => {
+        const o = {};
+        headers.forEach((h, i) => { o[h] = r[i] || ''; });
+        return o;
+      });
+
+      pushAdminButton.disabled = true;
+      const origLabel = pushAdminButton.textContent;
+      pushAdminButton.textContent = `Pushing ${objects.length}…`;
+      enrichPanel.style.display = 'block';
+      enrichLog.textContent += `Pushing ${objects.length} rows to ${adminApiUrl}…\n`;
+
+      try {
+        const res = await fetch(adminApiUrl, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: 'Bearer ' + adminApiToken,
+          },
+          body: JSON.stringify({ rows: objects, region_id: adminRegionId || null }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          enrichLog.textContent += `⚠️ Push failed (${res.status}): ${data.error || res.statusText}\n`;
+        } else {
+          enrichLog.textContent +=
+            `✓ Push complete: accepted=${data.accepted}, skipped=${data.skipped}, ` +
+            `errors=${(data.errors || []).length}\n`;
+        }
+      } catch (e) {
+        enrichLog.textContent += `⚠️ Push error: ${e.message}\n`;
+      } finally {
+        pushAdminButton.textContent = origLabel;
+        pushAdminButton.disabled = false;
+        enrichLog.scrollTop = enrichLog.scrollHeight;
+      }
+    });
 
     document.getElementById('generatePitchButton').addEventListener('click', async () => {
       const btn = document.getElementById('generatePitchButton');
@@ -207,7 +292,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('clearButton').addEventListener('click', async () => {
       if (!confirm('Clear all scraped + enriched data? This cannot be undone.')) return;
       chrome.runtime.sendMessage({ type: 'STOP' });
+      // Preserve admin endpoint settings (convenience, not data).
+      const keep = await chrome.storage.local.get(['adminApiUrl','adminApiToken','adminRegionId','autoEnrich']);
       await chrome.storage.local.clear();
+      await chrome.storage.local.set(keep);
       renderTable(HEADERS, []);
       const sumEl = document.getElementById('summary');
       sumEl.style.display = 'none'; sumEl.innerHTML = '';
