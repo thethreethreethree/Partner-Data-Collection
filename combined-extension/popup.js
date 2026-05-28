@@ -1,21 +1,33 @@
-const PITCH_PROMPT = `Prompt: Add a Friendly Pitch Column to a Hostel/Business CSV
-I have a CSV file with business listings (hostels, hotels, restaurants, etc.). The file contains columns like Title, Rating, Reviews count, Amenities, and contact info — but no actual review text or business descriptions.
-Please add a new column called Pitch at the end of the file. For each entry:
+const PITCH_PROMPT = `# Pitch Generation — Tiered Research Method (paste this with any tourism/business CSV)
 
-Search the web for that specific business by name (and location, if available in the data). Use sources like Booking.com, Hostelworld, Tripadvisor, Wanderlog, Google reviews, and the business's own website.
-Write a 3-5 sentence Pitch that captures the vibe of the place, grounded in what real guests and the business itself say. Each Pitch should:
+You are filling in a **Pitch** column for a CSV of travel listings (attractions, tours, hotels, restaurants, dive shops, etc.). Read the file, then write one pitch per row using the tiered method below. Preserve all original columns and column order; only populate the Pitch column. Save the result to /mnt/user-data/outputs/ with the same filename, and present it when done.
 
-Lead with the strongest, most appealing quality (location, atmosphere, standout feature)
-Mention specific details that make it memorable (staff names, signature offerings, unique amenities, named pets, themed nights, etc. — whatever guests consistently call out)
-Be friendly and inviting in tone, like a recommendation from a well-traveled friend
-Frame trade-offs positively (e.g., "quiet escape" instead of "far from town"; "simple budget pick" instead of "basic and run-down")
-End with a "best for…" or "ideal if…" line naming the type of traveler it suits
-Stay accurate — never invent features or fabricate quotes
+## How to write each pitch
+- 3–6 sentences, ~300–550 characters. Lead with the single strongest, most distinctive thing.
+- End every pitch with a "Best for…" or "Ideal for…" line naming who it suits.
+- Include concrete, memorable specifics where known: named guides/crew/instructors, signature dishes, crew "team" names, distances, what's included, the actual experience (not adjectives).
+- Frame trade-offs honestly but positively. For low ratings or thin reviews, say so plainly ("Honest read: …") rather than overselling.
+- Warm, knowledgeable travel-writer voice. No fabrication — if you don't know a specific, don't invent it.
 
+## Tier the rows first, then process
+Classify each row before writing, so research effort is spent where it matters:
 
-For places with very thin online presence (few reviews, no website), write a cautious but still warm Pitch that honestly reflects the low-profile, locally-run feel rather than making things up.
-Before starting, confirm the file has no existing description/review text to work from, and tell me roughly how many searches this will involve so I can confirm.
-Output: save the updated CSV to a downloadable file with all original columns preserved and the new Pitch column appended at the end.`;
+**Tier 1 — Famous / iconic places** (write from general knowledge, no search needed)
+Globally or nationally known landmarks, UNESCO sites, signature natural wonders, famous beaches. If a well-traveled person would already recognize the name, it's Tier 1.
+
+**Tier 2 — Mid-tier with a real footprint** (ONE targeted web search each)
+Established businesses with strong ratings and a meaningful review count (rough rule: rating ≥ 4.5 AND reviews ≥ ~150, or otherwise clearly notable). Search once to capture specifics — named staff, what's included, standout dishes, crew names — then write.
+
+**Tier 3 — Tiny / low-profile listings** (no search; write cautiously from metadata)
+Small review counts, thin online presence, or generic local operators. Write an honest, warm pitch based only on industry + rating + review count + amenities/address. Reflect the locally-run feel; don't invent features. Acknowledge low ratings or small samples directly.
+
+## Process rules
+- Batch the work: do all Tier 1 from knowledge, run Tier 2 searches in groups, then write Tier 3 from metadata.
+- Build the pitches in a scratch file keyed by row index, then apply to the CSV in one pass (cast the Pitch column to object/string dtype before writing text into it to avoid pandas float errors).
+- Verify at the end: all rows filled, original columns intact, file roundtrips when re-read.
+- Commit to finishing the whole file in one go. If the list is very large, keep the search budget lean (Tier 1 and 3 use zero searches; only Tier 2 searches, one per row) so you don't run out partway.
+
+When you start, first read the CSV, report the row count and how many fall into each tier, then proceed.`;
 
 // Category terms we recognize in a Google Maps search query. When the
 // user searches "hostels in El Nido", we keep only places whose Industry
