@@ -57,6 +57,33 @@
     }
     .app-header h1 { font-size: 19px; font-weight: 800; margin: 0; letter-spacing: -.02em; }
     .app-header p { margin: 2px 0 0; font-size: 12px; opacity: .7; font-weight: 500; }
+    .batch-pill {
+      flex: 0 0 auto; max-width: 260px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: 12px; color: #fff; font-weight: 600;
+      backdrop-filter: blur(6px);
+    }
+    .batch-pill-label {
+      color: var(--brand-2); font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    #batch-pill-name {
+      max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+    .batch-pill.dim #batch-pill-name { color: rgba(255,255,255,.55); font-style: italic; }
+    .batch-inline {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 9px; border-radius: 999px; margin-left: 8px;
+      background: rgba(232,151,58,.12); color: var(--brand-ink);
+      border: 1px solid rgba(232,151,58,.3);
+      font-size: 11px; font-weight: 700;
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+    .batch-inline::before { content: "▸"; opacity: .7; }
 
     /* Cards */
     .card {
@@ -150,9 +177,13 @@
 <body>
   <header class="app-header">
     <div class="logo">&#x1F5FA;&#xFE0F;</div>
-    <div>
+    <div style="flex:1; min-width:0;">
       <h1>Partner Collection</h1>
       <p>By ERT Collective</p>
+    </div>
+    <div id="batch-pill" class="batch-pill" title="Current dataset / output filename">
+      <span class="batch-pill-label">Batch</span>
+      <span id="batch-pill-name">Untitled</span>
     </div>
   </header>
 
@@ -199,7 +230,7 @@
 
   <div id="live-panel" class="card" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
-      <strong style="font-size:13px;">Local enrichment in progress</strong>
+      <strong style="font-size:13px;">Local enrichment in progress <span id="live-batch" class="batch-inline" style="display:none;"></span></strong>
       <div id="live-phase" class="muted" style="font-size:12px;">Starting…</div>
     </div>
     <div id="live-current" style="font-size:15px; font-weight:700; margin-bottom:8px; min-height:22px; letter-spacing:-.01em;">—</div>
@@ -215,7 +246,7 @@
 
   <div id="enrich-panel" class="card">
     <div class="panel-head">
-      <strong>Enrichment</strong>
+      <strong>Enrichment <span id="enrich-batch" class="batch-inline" style="display:none;"></span></strong>
       <div id="enrich-status">Idle</div>
     </div>
     <progress id="enrich-prog" value="0" max="1"></progress>

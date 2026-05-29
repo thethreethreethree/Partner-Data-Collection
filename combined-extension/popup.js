@@ -88,6 +88,37 @@ document.addEventListener('DOMContentLoaded', function () {
     const enrichProg      = document.getElementById('enrich-prog');
     const enrichLog       = document.getElementById('enrich-log');
 
+    // --- Batch label (the user-typed dataset/output name, shown wherever
+    //     work is happening so you can tell which dataset is being processed) ---
+    const batchPill     = document.getElementById('batch-pill');
+    const batchPillName = document.getElementById('batch-pill-name');
+    const enrichBatch   = document.getElementById('enrich-batch');
+    const liveBatch     = document.getElementById('live-batch');
+    function syncBatchLabel(raw) {
+      const name = (raw || '').trim();
+      if (name) {
+        batchPillName.textContent = name;
+        batchPill.classList.remove('dim');
+        enrichBatch.textContent = name; enrichBatch.style.display = 'inline-flex';
+        liveBatch.textContent   = name; liveBatch.style.display   = 'inline-flex';
+      } else {
+        batchPillName.textContent = 'Untitled';
+        batchPill.classList.add('dim');
+        enrichBatch.style.display = 'none';
+        liveBatch.style.display = 'none';
+      }
+    }
+    // Restore saved name, then mirror typing live + persist.
+    chrome.storage.local.get('batchName', ({ batchName }) => {
+      if (batchName) filenameInput.value = batchName;
+      syncBatchLabel(filenameInput.value);
+    });
+    filenameInput.addEventListener('input', () => {
+      const v = filenameInput.value;
+      syncBatchLabel(v);
+      chrome.storage.local.set({ batchName: v.trim() });
+    });
+
     const onMaps = currentTab && currentTab.url && currentTab.url.includes('://www.google.com/maps/search');
     if (onMaps) {
       document.getElementById('message').textContent = "Let's scrape Google Maps!";
@@ -490,6 +521,7 @@ document.addEventListener('DOMContentLoaded', function () {
       stopButton.disabled = true;
       runLocalScraperButton.disabled = true;
       filenameInput.value = '';
+      syncBatchLabel('');
     });
 
     function startEnrich() {
