@@ -109,13 +109,18 @@
     #summary { display: none; }
     #summary h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
     #summary .stat-row { display: flex; flex-wrap: wrap; gap: 10px; }
-    #summary .stat {
+    #summary .stat, #live-panel .stat {
       flex: 1 1 120px; display: flex; flex-direction: column; gap: 2px;
       padding: 12px 14px; background: var(--surface-2);
       border: 1px solid var(--border); border-radius: 12px;
     }
-    #summary .stat-label { color: var(--muted); font-size: 11px; font-weight: 500; }
-    #summary .stat-value { font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+    #summary .stat-label, #live-panel .stat-label { color: var(--muted); font-size: 11px; font-weight: 500; }
+    #summary .stat-value, #live-panel .stat-value { font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+    #live-feed li { padding: 2px 0; border-bottom: 1px solid var(--border); }
+    #live-feed li:last-child { border-bottom: none; }
+    #live-feed .ok  { color: var(--success); }
+    #live-feed .miss { color: var(--muted); }
+    #live-feed .info { color: var(--brand-ink); }
 
     /* Enrichment */
     #enrich-panel { display: none; }
@@ -159,7 +164,8 @@
       <button id="stopButton" class="button ghost" disabled>Stop</button>
       <button id="downloadCsvButton" class="button success" disabled>Download CSV</button>
       <button id="pushAdminButton" class="button success" disabled>Push to Admin</button>
-      <button id="settingsButton" class="button ghost" title="Admin endpoint settings">⚙</button>
+      <button id="runLocalScraperButton" class="button" style="background:linear-gradient(135deg,#e1306c,#a833e1);box-shadow:0 6px 14px -8px rgba(225,48,108,.85);" disabled title="POSTs the current rows to your local Experience Organizer server (http://localhost:8000) to fill missing Instagram handles + first-6 IG post thumbnails.">Run Local Enrichment</button>
+      <button id="settingsButton" class="button ghost" title="Endpoint settings">⚙</button>
       <button id="generatePitchButton" class="button ghost">Generate Pitch</button>
       <input type="text" id="filenameInput" class="input" placeholder="Enter file name" />
       <label class="toggle"><input type="checkbox" id="autoEnrich" checked> auto-enrich after scrape</label>
@@ -176,6 +182,12 @@
       <input id="apiUrlInput" class="input" placeholder="https://your-site.vercel.app/api/admin/stays/ingest" />
       <input id="apiTokenInput" class="input" type="password" placeholder="INGEST_TOKEN" />
       <input id="regionIdInput" class="input" placeholder="region_id (optional, e.g. el_nido_palawan_philippines)" />
+      <hr style="border:none; border-top:1px solid var(--border); margin:8px 0;">
+      <strong style="font-size:13px;">Local enricher (Experience Organizer)</strong>
+      <p class="muted" style="margin:6px 0 0; font-size:12px;">
+        URL of your local Node server (start with <code>start.bat</code>). Default fills missing Instagram handles + first-6 IG post thumbnails.
+      </p>
+      <input id="localScraperUrlInput" class="input" placeholder="http://localhost:8000/scrape-instagram" />
       <div style="display:flex; gap:8px;">
         <button id="saveSettingsButton" class="button">Save</button>
         <button id="closeSettingsButton" class="button ghost">Close</button>
@@ -184,6 +196,22 @@
   </div>
 
   <div id="summary" class="card"></div>
+
+  <div id="live-panel" class="card" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+      <strong style="font-size:13px;">Local enrichment in progress</strong>
+      <div id="live-phase" class="muted" style="font-size:12px;">Starting…</div>
+    </div>
+    <div id="live-current" style="font-size:15px; font-weight:700; margin-bottom:8px; min-height:22px; letter-spacing:-.01em;">—</div>
+    <progress id="live-prog" value="0" max="1"></progress>
+    <div id="live-stats" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;">
+      <div class="stat" style="flex:1 1 110px;"><span class="stat-label">Completed</span><span class="stat-value" id="live-completed">0</span></div>
+      <div class="stat" style="flex:1 1 110px;"><span class="stat-label">Filled ✓</span><span class="stat-value" id="live-filled" style="color:var(--success);">0</span></div>
+      <div class="stat" style="flex:1 1 110px;"><span class="stat-label">Missed ·</span><span class="stat-value" id="live-missed" style="color:var(--muted);">0</span></div>
+      <div class="stat" style="flex:1 1 110px;"><span class="stat-label">IG posts</span><span class="stat-value" id="live-posts">0</span></div>
+    </div>
+    <ul id="live-feed" style="margin:12px 0 0; padding:0; list-style:none; max-height:140px; overflow:auto; font-size:12px; font-family:ui-monospace,'SF Mono',Menlo,monospace; line-height:1.65;"></ul>
+  </div>
 
   <div id="enrich-panel" class="card">
     <div class="panel-head">

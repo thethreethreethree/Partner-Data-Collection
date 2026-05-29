@@ -175,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
           renderTable(HEADERS, rows);
           downloadCsvBtn.disabled = rows.length === 0;
           enrichButton.disabled   = rows.length === 0;
+          runLocalScraperButton.disabled = rows.length === 0;
           {
             const { adminApiUrl, adminApiToken } = await chrome.storage.local.get(['adminApiUrl','adminApiToken']);
             const pushBtn = document.getElementById('pushAdminButton');
@@ -199,12 +200,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const apiTokenInput = document.getElementById('apiTokenInput');
     const regionIdInput = document.getElementById('regionIdInput');
     const pushAdminButton = document.getElementById('pushAdminButton');
+    const localScraperUrlInput = document.getElementById('localScraperUrlInput');
+    const runLocalScraperButton = document.getElementById('runLocalScraperButton');
+    const DEFAULT_LOCAL_URL = 'http://localhost:8000/scrape-instagram';
 
-    chrome.storage.local.get(['adminApiUrl','adminApiToken','adminRegionId'], (s) => {
+    chrome.storage.local.get(['adminApiUrl','adminApiToken','adminRegionId','localScraperUrl','rows'], (s) => {
       apiUrlInput.value   = s.adminApiUrl   || '';
       apiTokenInput.value = s.adminApiToken || '';
       regionIdInput.value = s.adminRegionId || '';
+      localScraperUrlInput.value = s.localScraperUrl || DEFAULT_LOCAL_URL;
       pushAdminButton.disabled = !s.adminApiUrl || !s.adminApiToken;
+      runLocalScraperButton.disabled = !s.rows || s.rows.length === 0;
     });
 
     document.getElementById('settingsButton').addEventListener('click', () => {
@@ -218,11 +224,13 @@ document.addEventListener('DOMContentLoaded', function () {
         adminApiUrl:   apiUrlInput.value.trim(),
         adminApiToken: apiTokenInput.value.trim(),
         adminRegionId: regionIdInput.value.trim(),
+        localScraperUrl: localScraperUrlInput.value.trim() || DEFAULT_LOCAL_URL,
       });
-      pushAdminButton.disabled = !apiUrlInput.value.trim() || !apiTokenInput.value.trim() ||
-                                  !(await chrome.storage.local.get('rows')).rows;
+      const { rows } = await chrome.storage.local.get('rows');
+      pushAdminButton.disabled = !apiUrlInput.value.trim() || !apiTokenInput.value.trim() || !rows;
+      runLocalScraperButton.disabled = !rows || rows.length === 0;
       settingsPanel.style.display = 'none';
-      enrichLog.textContent += 'Admin endpoint settings saved.\n';
+      enrichLog.textContent += 'Endpoint settings saved.\n';
     });
 
     pushAdminButton.addEventListener('click', async () => {
@@ -271,6 +279,180 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
+    // --- Live progress panel handles ---
+    const livePanel    = document.getElementById('live-panel');
+    const livePhaseEl  = document.getElementById('live-phase');
+    const liveCurrent  = document.getElementById('live-current');
+    const liveProg     = document.getElementById('live-prog');
+    const liveCompletedEl = document.getElementById('live-completed');
+    const liveFilledEl    = document.getElementById('live-filled');
+    const liveMissedEl    = document.getElementById('live-missed');
+    const livePostsEl     = document.getElementById('live-posts');
+    const liveFeed     = document.getElementById('live-feed');
+
+    function resetLivePanel() {
+      livePanel.style.display = 'block';
+      livePhaseEl.textContent = 'Starting…';
+      liveCurrent.textContent = '—';
+      liveProg.value = 0; liveProg.max = 1;
+      liveCompletedEl.textContent = '0';
+      liveFilledEl.textContent    = '0';
+      liveMissedEl.textContent    = '0';
+      livePostsEl.textContent     = '0';
+      liveFeed.innerHTML = '';
+    }
+    function pushFeed(text, cls) {
+      const li = document.createElement('li');
+      if (cls) li.className = cls;
+      li.textContent = text;
+      liveFeed.appendChild(li);
+      // Keep the last 60 entries; auto-scroll to bottom.
+      while (liveFeed.childElementCount > 60) liveFeed.removeChild(liveFeed.firstChild);
+      liveFeed.scrollTop = liveFeed.scrollHeight;
+    }
+
+    runLocalScraperButton.addEventListener('click', async () => {
+      const { headers, rows, localScraperUrl } =
+        await chrome.storage.local.get(['headers','rows','localScraperUrl']);
+      if (!rows || !headers || rows.length === 0) { alert('No rows to enrich.'); return; }
+      const baseUrl = (localScraperUrl || DEFAULT_LOCAL_URL).trim();
+      // Force the streaming endpoint regardless of which path the user saved.
+      const streamUrl = baseUrl.replace(/\/scrape-instagram(-stream)?$/, '/scrape-instagram-stream');
+
+      const csvIn = toCSV([headers, ...rows]);
+      const origLabel = runLocalScraperButton.textContent;
+      runLocalScraperButton.disabled = true;
+      runLocalScraperButton.textContent = `Enriching ${rows.length}…`;
+      resetLivePanel();
+      enrichPanel.style.display = 'block';
+      enrichLog.textContent +=
+        `Streaming ${rows.length} rows from ${streamUrl}…\n`;
+      enrichLog.scrollTop = enrichLog.scrollHeight;
+
+      // Live counters
+      let total = rows.length;
+      let completed = 0, filled = 0, missed = 0, postsCount = 0;
+      let phase = 'instagram';
+      let finalCsv = null, finalLoggedIn = false, finalErr = null;
+
+      try {
+        const res = await fetch(streamUrl, {
+          method: 'POST',
+          headers: { 'content-type': 'text/csv' },
+          body: csvIn,
+        });
+        if (!res.ok || !res.body) {
+          const msg = await res.text().catch(() => res.statusText);
+          enrichLog.textContent += `⚠️ Local enricher failed (${res.status}): ${msg}\n`;
+          livePhaseEl.textContent = `Error (${res.status})`;
+          return;
+        }
+
+        // NDJSON: one JSON event per line.
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        readLoop: while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            const t = line.trim(); if (!t) continue;
+            let ev; try { ev = JSON.parse(t); } catch { continue; }
+
+            if (ev.type === 'start') {
+              total = ev.total || total;
+              liveProg.max = total || 1;
+              livePhaseEl.textContent = `Finding Instagram handles · ${total} rows`;
+              pushFeed(`— Phase: Instagram handles (${total} rows)`, 'info');
+            } else if (ev.type === 'ig-row') {
+              completed++;
+              const handle = (ev.handle || '').match(/instagram\.com\/([^/?#]+)/i)?.[1] || ev.handle;
+              if (ev.handle) { filled++; pushFeed(`✓ ${ev.name}  →  @${handle}`, 'ok'); }
+              else { missed++; pushFeed(`· ${ev.name}`, 'miss'); }
+              liveCurrent.textContent = ev.name;
+              liveProg.value = completed;
+              liveCompletedEl.textContent = String(completed);
+              liveFilledEl.textContent    = String(filled);
+              liveMissedEl.textContent    = String(missed);
+            } else if (ev.type === 'phase' && ev.phase === 'igposts') {
+              phase = 'igposts';
+              completed = 0;
+              total = ev.total || 0;
+              liveProg.max = total || 1; liveProg.value = 0;
+              liveCompletedEl.textContent = '0';
+              livePhaseEl.textContent = `Collecting IG posts · ${total} accounts`;
+              pushFeed(`— Phase: IG posts (${total} accounts with handles)`, 'info');
+            } else if (ev.type === 'igposts-row') {
+              completed++;
+              if (ev.count > 0) postsCount += ev.count;
+              liveCurrent.textContent = ev.name;
+              liveProg.value = completed;
+              liveCompletedEl.textContent = String(completed);
+              livePostsEl.textContent     = String(postsCount);
+              if (ev.already)        pushFeed(`= ${ev.name} (already had posts)`, 'miss');
+              else if (ev.count > 0) pushFeed(`✓ ${ev.name}: ${ev.count} post(s)`, 'ok');
+              else                   pushFeed(`· ${ev.name}: no posts`, 'miss');
+            } else if (ev.type === 'done') {
+              finalCsv = ev.csv; finalLoggedIn = !!ev.loggedIn;
+              livePhaseEl.textContent =
+                `Done · filled ${ev.filled} new IG handles (${ev.already} already had one)` +
+                (ev.loggedIn ? `, posts for ${ev.posts} accounts` : ', posts skipped (not logged in)');
+              liveCurrent.textContent = '✓ Complete';
+              if (total > 0) { liveProg.value = liveProg.max; }
+              break readLoop;
+            } else if (ev.type === 'error') {
+              finalErr = ev.message;
+              livePhaseEl.textContent = `Error: ${ev.message}`;
+              liveCurrent.textContent = '⚠️ Stopped';
+              break readLoop;
+            }
+          }
+        }
+
+        if (finalErr) {
+          enrichLog.textContent += `⚠️ Local enricher error: ${finalErr}\n`;
+          return;
+        }
+        if (!finalCsv) {
+          enrichLog.textContent += `⚠️ Stream ended without a 'done' event.\n`;
+          return;
+        }
+        const parsed = parseCSV(finalCsv);
+        if (!parsed.length) {
+          enrichLog.textContent += `⚠️ Local enricher returned empty CSV.\n`;
+          return;
+        }
+        const newHeaders = parsed.shift();
+        const newRows = parsed
+          .filter((r) => r.some((v) => (v || '').length))
+          .map((r) => {
+            const o = new Array(newHeaders.length).fill('');
+            for (let i = 0; i < r.length && i < newHeaders.length; i++) o[i] = r[i] ?? '';
+            return o;
+          });
+        await chrome.storage.local.set({ headers: newHeaders, rows: newRows });
+        renderTable(newHeaders, newRows);
+        enrichLog.textContent +=
+          `✓ Local enrichment done: filled ${filled} new IG handles, ${missed} missed.\n` +
+          (finalLoggedIn
+            ? `   IG posts collected: ${postsCount} thumbnails across ${completed} accounts.\n`
+            : `   IG posts skipped (not logged in — run ig-login.mjs in the Experience Organizer folder).\n`);
+      } catch (e) {
+        enrichLog.textContent +=
+          `⚠️ Couldn't reach the local enricher: ${e.message}\n` +
+          `   Is the Experience Organizer server running? Double-click start.bat.\n`;
+        livePhaseEl.textContent = `Error: ${e.message}`;
+        liveCurrent.textContent = '⚠️ Connection failed';
+      } finally {
+        runLocalScraperButton.textContent = origLabel;
+        runLocalScraperButton.disabled = false;
+        enrichLog.scrollTop = enrichLog.scrollHeight;
+      }
+    });
+
     document.getElementById('generatePitchButton').addEventListener('click', async () => {
       const btn = document.getElementById('generatePitchButton');
       try {
@@ -306,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function () {
       downloadCsvBtn.disabled = true;
       enrichButton.disabled = true;
       stopButton.disabled = true;
+      runLocalScraperButton.disabled = true;
       filenameInput.value = '';
     });
 
@@ -381,6 +564,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
+
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], n = text[i + 1];
+    if (inQ) {
+      if (c === '"' && n === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (c === '\r') { /* skip */ }
+      else cur += c;
+    }
+  }
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
 
 function toCSV(rows) {
   return rows.map((r) => r.map((v) => {
