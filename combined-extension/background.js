@@ -142,12 +142,13 @@ async function processRow(headers, row, idx) {
   if (iAddr >= 0 && (m.address || '')) row[iAddr] = m.address;
   if (iInd  >= 0 && (m.category || '')) row[iInd] = m.category;
   // Image: the place-page photo is hi-res — prefer it over any low-res
-  // search-card thumbnail captured during scraping. Only keep an existing
-  // value if it's already a non-Google (e.g. website) image.
+  // search-card thumbnail OR Google's default_user.png placeholder. Keep
+  // an existing value only if it's a real non-Google (e.g. website) image.
   if (iImg >= 0 && (m.image || '')) {
     const cur = row[iImg] || '';
     const curIsGoogleThumb = /googleusercontent\.com|ggpht\.com/.test(cur);
-    if (!cur || curIsGoogleThumb) row[iImg] = m.image;
+    const curIsPlaceholder = /ssl\.gstatic\.com\/local\/servicebusiness|default_user\.png|maps\/api\/staticmap/i.test(cur);
+    if (!cur || curIsGoogleThumb || curIsPlaceholder) row[iImg] = m.image;
   }
   if (iAm    >= 0 && (m.amenities || '')) row[iAm] = m.amenities;
   // Tier 1: the "website" may itself be a social/Linktree URL.

@@ -656,8 +656,16 @@ async function scrapeData() {
 
     let image = '';
     if (container) {
-      const imgEl = container.querySelector('img[src*="googleusercontent.com"], img[src*="ggpht.com"], img[src^="http"]');
-      if (imgEl) image = imgEl.src;
+      // Walk the card's imgs, skipping Google's default placeholder
+      // (default_user.png) and tiny avatar tokens. Prefer real photo CDNs.
+      const isPlaceholder = (src) =>
+        !src ||
+        /ssl\.gstatic\.com\/local\/servicebusiness|default_user\.png|maps\/api\/staticmap/i.test(src) ||
+        /(^|\/)a-?\//.test(src) || /=s(32|44|48|64|72|96)\b/.test(src);
+      const imgs = Array.from(container.querySelectorAll('img[src^="http"]'));
+      const real = imgs.find((el) => !isPlaceholder(el.src) && /googleusercontent\.com|ggpht\.com/.test(el.src))
+                || imgs.find((el) => !isPlaceholder(el.src));
+      if (real) image = real.src;
       if (image && /googleusercontent\.com|ggpht\.com/.test(image)) {
         image = image.replace(/=[^/?#]+$/, '=w1600-h1200-k-no');
       }
