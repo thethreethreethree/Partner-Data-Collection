@@ -191,6 +191,8 @@
     <div id="message">Checking URL...</div>
     <div class="row-controls">
       <button id="actionButton" class="button" disabled>Scrape Google Maps</button>
+      <button id="loadCsvButton" class="button ghost" title="Load an existing CSV (e.g. partners missing photos) into the table so you can re-enrich, push to admin, or run local enrichment.">Load CSV</button>
+      <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none;">
       <button id="enrichButton" class="button ghost" disabled>Enrich Data</button>
       <button id="stopButton" class="button ghost" disabled>Stop</button>
       <button id="downloadCsvButton" class="button success" disabled>Download CSV</button>

@@ -342,6 +342,67 @@ document.addEventListener('DOMContentLoaded', function () {
       liveFeed.scrollTop = liveFeed.scrollHeight;
     }
 
+    // --- Load CSV: import an existing file (e.g. partners_missing_photos.csv)
+    //     into the table so it can be re-enriched / pushed / locally-enriched. ---
+    const csvFileInput = document.getElementById('csvFileInput');
+    document.getElementById('loadCsvButton').addEventListener('click', () => {
+      csvFileInput.value = ''; // allow re-picking the same file
+      csvFileInput.click();
+    });
+    csvFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = parseCSV(text).filter((r) => r.some((v) => (v || '').length));
+        if (parsed.length < 2) { alert('CSV looks empty.'); return; }
+        const newHeaders = parsed.shift();
+        const newRows = parsed.map((r) => {
+          const o = new Array(newHeaders.length).fill('');
+          for (let i = 0; i < r.length && i < newHeaders.length; i++) o[i] = r[i] ?? '';
+          return o;
+        });
+
+        // Derive a batch name from the filename (strip ".csv").
+        const batchName = file.name.replace(/\.csv$/i, '');
+        filenameInput.value = batchName;
+        syncBatchLabel(batchName);
+
+        await chrome.storage.local.set({
+          headers: newHeaders,
+          rows: newRows,
+          progress: 0,
+          status: `${newRows.length} rows loaded from ${file.name}`,
+          searchCats: [],          // no Maps query context for an imported file
+          batchName,
+        });
+
+        // Refresh UI: render table, show summary, enable downstream actions.
+        renderTable(newHeaders, newRows);
+        const sumEl = document.getElementById('summary');
+        sumEl.style.display = 'block';
+        sumEl.innerHTML =
+          '<h3>Imported</h3>' +
+          '<div class="stat-row">' +
+            `<div class="stat"><span class="stat-label">Source</span><span class="stat-value" style="font-size:14px; font-family:ui-monospace,monospace; word-break:break-all;">${file.name}</span></div>` +
+            `<div class="stat"><span class="stat-label">Rows</span><span class="stat-value">${newRows.length}</span></div>` +
+            `<div class="stat"><span class="stat-label">Columns</span><span class="stat-value">${newHeaders.length}</span></div>` +
+          '</div>';
+
+        downloadCsvBtn.disabled = newRows.length === 0;
+        enrichButton.disabled   = newRows.length === 0;
+        runLocalScraperButton.disabled = newRows.length === 0;
+        const { adminApiUrl, adminApiToken } = await chrome.storage.local.get(['adminApiUrl','adminApiToken']);
+        pushAdminButton.disabled = !adminApiUrl || !adminApiToken || newRows.length === 0;
+
+        enrichPanel.style.display = 'block';
+        enrichLog.textContent += `Loaded ${newRows.length} rows from ${file.name}.\n`;
+        enrichLog.scrollTop = enrichLog.scrollHeight;
+      } catch (err) {
+        alert('Failed to parse CSV: ' + err.message);
+      }
+    });
+
     runLocalScraperButton.addEventListener('click', async () => {
       const { headers, rows, localScraperUrl } =
         await chrome.storage.local.get(['headers','rows','localScraperUrl']);
