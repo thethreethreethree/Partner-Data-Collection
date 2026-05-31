@@ -37,7 +37,6 @@ const CATEGORY_TERMS = [
   'bed and breakfast','b&b','apartment','apartelle','villa','cottage','lodge',
   'pension','homestay','campsite','glamping',
   'restaurant','cafe','coffee','bakery','bar','pub','brewery','diner',
-  'nightlife','nightclub','night club','club','lounge','disco',
   'spa','gym','salon','barber','clinic','dentist','pharmacy',
   'museum','gallery','park','beach','dive shop','tour'
 ];
@@ -68,8 +67,8 @@ function conflictsWithCategory(industry, cats) {
   return hasOther;
 }
 
-const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Pitch','Latitude','Longitude','Google Maps Link','Source Query','City'];
-const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','pitch','latitude','longitude','href','sourceQuery','city'];
+const HEADERS = ['Title','Rating','Reviews','Phone','WhatsApp','Instagram','Facebook','Industry','Address','Website','Image','Amenities','Pitch','Latitude','Longitude','Google Maps Link'];
+const KEYS    = ['title','rating','reviewCount','phone','whatsapp','instagram','facebook','industry','address','companyUrl','image','amenities','pitch','latitude','longitude','href'];
 
 document.addEventListener('DOMContentLoaded', function () {
   if (new URLSearchParams(location.search).get('view') === 'tab') {
@@ -161,21 +160,13 @@ document.addEventListener('DOMContentLoaded', function () {
       const origLabel = actionButton.textContent;
       actionButton.textContent = 'Scrolling Maps…';
       chrome.scripting.executeScript(
-        { target: { tabId: currentTab.id }, files: ['scrape_in_page.js'] },
+        { target: { tabId: currentTab.id }, function: scrapeData },
         async function (results) {
           actionButton.textContent = origLabel;
           if (!results || !results[0] || !results[0].result) {
             actionButton.disabled = false; return;
           }
-          const all = results[0].result || [];
-          // Tag every card with the search query this scrape came from
-          // (so single-mode and batch-mode CSVs share the same shape).
-          let sourceQuery = '';
-          try {
-            const m = (currentTab.url || '').match(/\/maps\/search\/([^/?]+)/);
-            if (m) sourceQuery = decodeURIComponent(m[1].replace(/\+/g, ' '));
-          } catch {}
-          all.forEach((it) => { it.sourceQuery = sourceQuery; });
+          const all = results[0].result;
           const searchCats = detectQueryCategories(currentTab.url);
           const rated = all.filter((it) => {
             const r = parseFloat((it.rating || '').toString().replace(',', '.'));
@@ -233,301 +224,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     enrichButton.addEventListener('click', startEnrich);
     stopButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'STOP' }));
-
-    // --- Batch run controls (Country → Region → multi-city) ---
-    const batchStartButton  = document.getElementById('batchStartButton');
-    const batchPauseButton  = document.getElementById('batchPauseButton');
-    const batchStopButton   = document.getElementById('batchStopButton');
-    const batchSummary      = document.getElementById('batch-summary');
-    const locCountrySel     = document.getElementById('locCountry');
-    const locRegionSel      = document.getElementById('locRegion');
-    const locAddBtn         = document.getElementById('locAddButton');
-    const cityPickerWrap    = document.getElementById('city-picker');
-    const cityCheckboxesEl  = document.getElementById('cityCheckboxes');
-    const cityAllToggle     = document.getElementById('cityAllToggle');
-    const cityProgressWrap  = document.getElementById('city-progress');
-    const cityPillsEl       = document.getElementById('cityPills');
-    const exportPerCityBtn  = document.getElementById('exportPerCityButton');
-    const batchCatCheckboxes = () => Array.from(document.querySelectorAll('.batch-cat'));
-
-    // Locations data: merge bundled JSON with user's custom additions.
-    let LOCATIONS = {};
-    const LOCATIONS_URL = chrome.runtime.getURL('locations.json');
-    async function loadLocations() {
-      const bundled = await fetch(LOCATIONS_URL).then((r) => r.json()).catch(() => ({}));
-      const { customLocations = {} } = await chrome.storage.local.get('customLocations');
-      // Deep-merge bundled + custom.
-      const merged = JSON.parse(JSON.stringify(bundled));
-      for (const country of Object.keys(customLocations)) {
-        merged[country] = merged[country] || {};
-        for (const region of Object.keys(customLocations[country])) {
-          const cur = merged[country][region] || [];
-          const add = customLocations[country][region] || [];
-          merged[country][region] = Array.from(new Set([...cur, ...add]));
-        }
-      }
-      LOCATIONS = merged;
-      populateCountries();
-    }
-
-    function populateCountries() {
-      const selected = locCountrySel.value;
-      locCountrySel.innerHTML = '<option value="">Country…</option>' +
-        Object.keys(LOCATIONS).sort().map((c) => `<option value="${c}">${c}</option>`).join('');
-      if (selected && LOCATIONS[selected]) locCountrySel.value = selected;
-      populateRegions();
-    }
-    function populateRegions() {
-      const country = locCountrySel.value;
-      const prev = locRegionSel.value;
-      if (!country) {
-        locRegionSel.innerHTML = '<option value="">Region…</option>';
-        locRegionSel.disabled = true;
-        renderCities([]);
-        return;
-      }
-      const regions = Object.keys(LOCATIONS[country] || {}).sort();
-      locRegionSel.innerHTML = '<option value="">Region…</option>' +
-        regions.map((r) => `<option value="${r}">${r}</option>`).join('');
-      locRegionSel.disabled = false;
-      if (prev && regions.includes(prev)) locRegionSel.value = prev;
-      renderCitiesFromSelection();
-    }
-    function renderCitiesFromSelection() {
-      const country = locCountrySel.value, region = locRegionSel.value;
-      if (!country || !region) { renderCities([]); return; }
-      const cities = (LOCATIONS[country][region] || []).slice().sort();
-      renderCities(cities);
-    }
-    function renderCities(cities) {
-      cityPickerWrap.style.display = cities.length ? 'block' : 'none';
-      cityCheckboxesEl.innerHTML = cities.map((city) =>
-        `<label class="toggle"><input type="checkbox" class="city-cb" value="${city}"> ${city}</label>`
-      ).join('');
-      // Restore previously-selected cities for this region.
-      chrome.storage.local.get('selectedCities', ({ selectedCities }) => {
-        const key = `${locCountrySel.value}|${locRegionSel.value}`;
-        const saved = (selectedCities || {})[key] || [];
-        const enabled = new Set(saved);
-        cityCheckboxesEl.querySelectorAll('.city-cb').forEach((cb) => {
-          cb.checked = enabled.has(cb.value);
-        });
-        updateStartEnabled();
-      });
-    }
-    function selectedCities() {
-      return Array.from(cityCheckboxesEl.querySelectorAll('.city-cb'))
-        .filter((cb) => cb.checked).map((cb) => cb.value);
-    }
-    function updateStartEnabled() {
-      batchStartButton.disabled = selectedCities().length === 0 ||
-        batchCatCheckboxes().filter((cb) => cb.checked).length === 0;
-    }
-    cityCheckboxesEl.addEventListener('change', async () => {
-      const key = `${locCountrySel.value}|${locRegionSel.value}`;
-      const cities = selectedCities();
-      const { selectedCities: store = {} } = await chrome.storage.local.get('selectedCities');
-      store[key] = cities;
-      await chrome.storage.local.set({ selectedCities: store });
-      cityAllToggle.checked = cities.length > 0 &&
-        cities.length === cityCheckboxesEl.querySelectorAll('.city-cb').length;
-      updateStartEnabled();
-    });
-    cityAllToggle.addEventListener('change', () => {
-      cityCheckboxesEl.querySelectorAll('.city-cb').forEach((cb) => { cb.checked = cityAllToggle.checked; });
-      cityCheckboxesEl.dispatchEvent(new Event('change'));
-    });
-
-    // Restore country/region selection across popup opens.
-    chrome.storage.local.get(['locCountry','locRegion','batchCats'], (s) => {
-      if (s.batchCats && Array.isArray(s.batchCats) && s.batchCats.length) {
-        const enabled = new Set(s.batchCats);
-        batchCatCheckboxes().forEach((cb) => { cb.checked = enabled.has(cb.value); });
-      }
-      if (s.locCountry) locCountrySel.value = s.locCountry;
-      // Wait for LOCATIONS to load before we can populate regions.
-      const tryRestore = () => {
-        if (!Object.keys(LOCATIONS).length) return setTimeout(tryRestore, 100);
-        populateRegions();
-        if (s.locRegion) {
-          locRegionSel.value = s.locRegion;
-          renderCitiesFromSelection();
-        }
-      };
-      tryRestore();
-    });
-    locCountrySel.addEventListener('change', () => {
-      chrome.storage.local.set({ locCountry: locCountrySel.value, locRegion: '' });
-      populateRegions();
-    });
-    locRegionSel.addEventListener('change', () => {
-      chrome.storage.local.set({ locRegion: locRegionSel.value });
-      renderCitiesFromSelection();
-    });
-    document.getElementById('batch-cats').addEventListener('change', () => {
-      const cats = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
-      chrome.storage.local.set({ batchCats: cats });
-      updateStartEnabled();
-    });
-
-    // Add custom country / region / city.
-    locAddBtn.addEventListener('click', async () => {
-      const country = prompt('Country? (leave blank to cancel)')?.trim();
-      if (!country) return;
-      const region = prompt(`Region in ${country}?`)?.trim();
-      if (!region) return;
-      const cityList = prompt(`Cities in ${region}? (comma-separated)`)?.trim();
-      if (!cityList) return;
-      const cities = cityList.split(',').map((c) => c.trim()).filter(Boolean);
-      const { customLocations = {} } = await chrome.storage.local.get('customLocations');
-      customLocations[country] = customLocations[country] || {};
-      const cur = new Set(customLocations[country][region] || []);
-      cities.forEach((c) => cur.add(c));
-      customLocations[country][region] = [...cur];
-      await chrome.storage.local.set({ customLocations });
-      await loadLocations();
-      locCountrySel.value = country; populateRegions();
-      locRegionSel.value = region;   renderCitiesFromSelection();
-    });
-
-    loadLocations();
-
-    batchStartButton.addEventListener('click', () => {
-      const country = locCountrySel.value, region = locRegionSel.value;
-      const cityNames = selectedCities();
-      const categories = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
-      if (!country || !region || cityNames.length === 0) { alert('Pick a country, a region, and at least one city.'); return; }
-      if (categories.length === 0) { alert('Pick at least one category.'); return; }
-      const cities = cityNames.map((city) => ({
-        city, region, country,
-        full: `${city}, ${region}, ${country}`,
-      }));
-      if (!filenameInput.value.trim()) {
-        const slug = (cityNames.length === 1 ? cityNames[0] : region).toLowerCase()
-          .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-        filenameInput.value = slug;
-        syncBatchLabel(slug);
-        chrome.storage.local.set({ batchName: slug });
-      }
-      resetLivePanel();
-      livePhaseEl.textContent = `Batch · ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} × ${categories.length} categor${categories.length === 1 ? 'y' : 'ies'}`;
-      liveCurrent.textContent = 'Starting…';
-      batchSummary.textContent = `Starting ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} × ${categories.length} cats…`;
-      batchStartButton.disabled = true;
-      batchStopButton.disabled = false;
-      enrichPanel.style.display = 'block';
-      enrichLog.textContent += `Batch start: ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} (${cityNames.join(', ')}) × [${categories.join(', ')}]\n`;
-      enrichLog.scrollTop = enrichLog.scrollHeight;
-      chrome.runtime.sendMessage({ type: 'START_BATCH', cities, categories });
-    });
-
-    batchStopButton.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ type: 'STOP' });
-      batchSummary.textContent = 'Stopping after current query…';
-    });
-
-    // Pause/Resume — relies on persisted batchState.paused for label sync,
-    // so closing/reopening the popup mid-pause still shows the right state.
-    batchPauseButton.addEventListener('click', async () => {
-      const { batchState } = await chrome.storage.local.get('batchState');
-      const paused = !!(batchState && batchState.paused);
-      chrome.runtime.sendMessage({ type: paused ? 'RESUME_BATCH' : 'PAUSE_BATCH' });
-      batchPauseButton.textContent = paused ? 'Pause' : 'Resume';
-    });
-
-    // --- City status pills ---
-    function renderCityPills(cities) {
-      if (!cities || !cities.length) { cityProgressWrap.style.display = 'none'; cityPillsEl.innerHTML = ''; return; }
-      cityProgressWrap.style.display = 'block';
-      cityPillsEl.innerHTML = cities.map((c) => {
-        const cls = c.status || 'pending';
-        const cnt = (c.status === 'done' || c.status === 'processing') ? `<span class="count">${c.kept || 0}</span>` : '';
-        return `<div class="city-pill ${cls}"><span class="dot"></span><span class="name">${c.city || c.full}</span>${cnt}</div>`;
-      }).join('');
-    }
-
-    // --- Restore batch dashboard from persisted state on popup open ---
-    function applyBatchState(s) {
-      if (!s) { cityProgressWrap.style.display = 'none'; return; }
-      renderCityPills(s.cities || []);
-      if (s.phase === 'running') {
-        livePanel.style.display = 'block';
-        const idx = s.index || 0;
-        const total = s.total || 1;
-        const label = s.currentCity ? `${s.currentCategory || ''} in ${s.currentCity}`.trim() : 'Preparing…';
-        livePhaseEl.textContent = s.paused
-          ? `Batch ⏸ paused at query ${idx + 1}/${total}`
-          : `Batch · query ${idx + 1}/${total}`;
-        liveCurrent.textContent = s.paused ? `⏸ ${label}` : label;
-        liveProg.max = total;
-        liveProg.value = idx;
-        liveCompletedEl.textContent = String(idx);
-        liveFilledEl.textContent    = String(s.runningTotal || 0);
-        if (s.paused) {
-          batchSummary.textContent = `⏸ Paused · ${s.runningTotal || 0} rows preserved. Click Resume when ready.`;
-        } else {
-          batchSummary.textContent = idx > 0
-            ? `Running · ${idx}/${total} queries · ${s.runningTotal || 0} rows so far`
-            : `Starting · ${total} queries across ${(s.cities || []).length} cit${(s.cities || []).length === 1 ? 'y' : 'ies'}`;
-        }
-        batchStartButton.disabled = true;
-        batchPauseButton.disabled = false;
-        batchPauseButton.textContent = s.paused ? 'Resume' : 'Pause';
-        batchStopButton.disabled  = false;
-        exportPerCityBtn.disabled = true;
-      } else if (s.phase === 'done') {
-        const summary = `${s.runningTotal} unique rows from ${s.total} queries` +
-                        (s.dupes ? ` · ${s.dupes} dupes removed` : '');
-        batchSummary.textContent = `Last batch: ${summary}`;
-        batchStartButton.disabled = false;
-        batchPauseButton.disabled = true;
-        batchPauseButton.textContent = 'Pause';
-        batchStopButton.disabled  = true;
-        exportPerCityBtn.disabled = !(s.cities && s.cities.length);
-      }
-    }
-    chrome.storage.local.get('batchState', ({ batchState }) => applyBatchState(batchState));
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local') return;
-      if (changes.batchState) applyBatchState(changes.batchState.newValue);
-      if (changes.lastAutoSave && changes.lastAutoSave.newValue) {
-        const s = changes.lastAutoSave.newValue;
-        enrichLog.textContent += `💾 Auto-saved ${s.rows} rows → ${s.filename}\n`;
-        enrichLog.scrollTop = enrichLog.scrollHeight;
-      }
-    });
-
-    // --- Export per City: split current rows by City column, download N CSVs ---
-    exportPerCityBtn.addEventListener('click', async () => {
-      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
-      if (!rows || !rows.length) { alert('No rows to export.'); return; }
-      const iCity = headers.indexOf('City');
-      if (iCity < 0) { alert('No City column in this dataset.'); return; }
-      const byCity = new Map();
-      for (const r of rows) {
-        const c = (r[iCity] || '_unassigned').trim() || '_unassigned';
-        if (!byCity.has(c)) byCity.set(c, []);
-        byCity.get(c).push(r);
-      }
-      const baseName = (filenameInput.value.trim() || 'batch')
-        .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
-      let i = 0;
-      for (const [city, cityRows] of byCity) {
-        const slug = city.replace(/[^a-z0-9]+/gi, '_').toLowerCase().slice(0, 60);
-        const csv = toCSV([headers, ...cityRows]);
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${baseName}_${slug}.csv`;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        // Tiny stagger so Chrome doesn't drop downloads from the same click.
-        await new Promise((r) => setTimeout(r, 250 * i++));
-        a.click(); a.remove();
-      }
-      enrichLog.textContent += `Exported ${byCity.size} per-city CSV${byCity.size === 1 ? '' : 's'}.\n`;
-      enrichLog.scrollTop = enrichLog.scrollHeight;
-    });
 
     // --- Admin push settings (endpoint + token + optional region) ---
     const settingsPanel = document.getElementById('settings-panel');
@@ -881,8 +577,6 @@ document.addEventListener('DOMContentLoaded', function () {
       enrichProg.value = 0; enrichProg.max = 1;
       enrichStatus.textContent = 'Idle';
       enrichLog.textContent = '';
-      batchSummary.textContent = 'No batch running.';
-      livePanel.style.display = 'none';
       downloadCsvBtn.disabled = true;
       enrichButton.disabled = true;
       stopButton.disabled = true;
@@ -926,29 +620,6 @@ document.addEventListener('DOMContentLoaded', function () {
       } else if (msg.type === 'DONE') {
         enrichButton.disabled = false;
         stopButton.disabled = true;
-        batchStartButton.disabled = false;
-        batchStopButton.disabled = true;
-      } else if (msg.type === 'BATCH') {
-        if (msg.phase === 'scraping') {
-          livePhaseEl.textContent = `Batch · scraping (${msg.index + 1}/${msg.total})`;
-          liveCurrent.textContent = msg.query;
-          batchSummary.textContent = `Scraping query ${msg.index + 1} of ${msg.total}: ${msg.query}`;
-          pushFeed(`▸ Scraping: ${msg.query}`, 'info');
-        } else if (msg.phase === 'scraped') {
-          batchSummary.textContent = `Done ${msg.index}/${msg.total} · ${msg.runningTotal} rows so far`;
-          liveProg.max = msg.total;
-          liveProg.value = msg.index;
-          liveCompletedEl.textContent = String(msg.index);
-          liveFilledEl.textContent    = String(msg.runningTotal);
-          pushFeed(`   → ${msg.scraped} cards, ${msg.kept} kept`, msg.kept ? 'ok' : 'miss');
-        } else if (msg.phase === 'done') {
-          const summary = `${msg.totalKept} unique rows from ${msg.perQuery.length} quer${msg.perQuery.length === 1 ? 'y' : 'ies'}` +
-                          (msg.dupes ? ` · ${msg.dupes} dupes removed` : '');
-          batchSummary.textContent = summary;
-          livePhaseEl.textContent = `Batch scrape complete — ${summary}. Enriching…`;
-          liveCurrent.textContent = '✓ All queries scraped';
-          pushFeed(`✓ ${summary}`, 'ok');
-        }
       }
     });
 
@@ -1014,4 +685,100 @@ function toCSV(rows) {
   }).join(',')).join('\r\n');
 }
 
-// scrapeData lives in scrape_in_page.js — popup and background share it.
+// === Runs in the Google Maps search page ===
+async function scrapeData() {
+  // Auto-scroll the results feed until the list stops growing or Google
+  // shows "You've reached the end of the list." — Maps virtualizes the
+  // panel, so without this we'd only see the ~20 cards initially rendered.
+  const feed = document.querySelector('[role="feed"]');
+  if (feed) {
+    let lastCount = 0, stable = 0;
+    for (let i = 0; i < 120; i++) {
+      feed.scrollTop = feed.scrollHeight;
+      await new Promise((r) => setTimeout(r, 900));
+      const count = feed.querySelectorAll('a[href^="https://www.google.com/maps/place"]').length;
+      const end = /you('|’)?ve reached the end of the list/i.test(feed.innerText || '');
+      if (count === lastCount) stable++; else stable = 0;
+      lastCount = count;
+      if (end || stable >= 3) break;
+    }
+  }
+
+  const links = Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"]'));
+  return links.map((link) => {
+    const container = link.closest('[jsaction*="mouseover:pane"]');
+    const titleText = container ? (container.querySelector('.fontHeadlineSmall')?.textContent || '') : '';
+    let rating = '', reviewCount = '', phone = '', industry = '', address = '', companyUrl = '', instagram = '', facebook = '';
+
+    if (container) {
+      const roleImg = container.querySelector('[role="img"]');
+      if (roleImg) {
+        const al = roleImg.getAttribute('aria-label') || '';
+        if (al.includes('stars')) {
+          const parts = al.split(' ');
+          rating = parts[0];
+          reviewCount = '(' + parts[2] + ')';
+        } else { rating = '0'; reviewCount = '0'; }
+      }
+
+      const text = container.textContent || '';
+      const addrMatch = text.match(/\d+ [\w\s]+(?:#\s*\d+|Suite\s*\d+|Apt\s*\d+)?/);
+      if (addrMatch) {
+        address = addrMatch[0];
+        const before = text.substring(0, text.indexOf(address)).trim();
+        const idx = before.lastIndexOf(rating + reviewCount);
+        if (idx !== -1) {
+          const raw = before.substring(idx + (rating + reviewCount).length).trim().split(/[\r\n]+/)[0];
+          industry = raw.replace(/[·.,#!?]/g, '').trim();
+        }
+        address = address.replace(/\b(Closed|Open 24 hours|24 hours)|Open\b/g, '').trim()
+                         .replace(/(\w)(Open|Closed)/g, '$1').trim();
+      }
+
+      const allAnchors = Array.from(container.querySelectorAll('a[href]'));
+      const external = allAnchors.filter((a) => !a.href.startsWith('https://www.google.com/maps/place/'));
+      if (external.length > 0) companyUrl = external[0].href;
+      const ig = allAnchors.find((a) => /(^|\.)instagram\.com\//i.test(a.href));
+      if (ig) instagram = ig.href;
+      const fb = allAnchors.find((a) => /(^|\.)facebook\.com\//i.test(a.href));
+      if (fb) facebook = fb.href;
+
+      const pm = text.match(/(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
+      phone = pm ? pm[0] : '';
+    }
+
+    let image = '';
+    if (container) {
+      // Walk the card's imgs, skipping Google's default placeholder
+      // (default_user.png) and tiny avatar tokens. Prefer real photo CDNs.
+      const isPlaceholder = (src) =>
+        !src ||
+        /ssl\.gstatic\.com\/local\/servicebusiness|default_user\.png|maps\/api\/staticmap/i.test(src) ||
+        /(^|\/)a-?\//.test(src) || /=s(32|44|48|64|72|96)\b/.test(src);
+      const imgs = Array.from(container.querySelectorAll('img[src^="http"]'));
+      const real = imgs.find((el) => !isPlaceholder(el.src) && /googleusercontent\.com|ggpht\.com/.test(el.src))
+                || imgs.find((el) => !isPlaceholder(el.src));
+      if (real) image = real.src;
+      if (image && /googleusercontent\.com|ggpht\.com/.test(image)) {
+        image = image.replace(/=[^/?#]+$/, '=w1600-h1200-k-no');
+      }
+    }
+
+    let latitude = '', longitude = '';
+    const pin = link.href.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    if (pin) { latitude = pin[1]; longitude = pin[2]; }
+    else {
+      const at = link.href.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+      if (at) { latitude = at[1]; longitude = at[2]; }
+    }
+
+    let whatsapp = '';
+    if (phone) {
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length >= 7) whatsapp = 'https://wa.me/' + digits;
+    }
+
+    return { title: titleText, rating, reviewCount, phone, whatsapp, instagram, facebook,
+             industry, address, companyUrl, image, latitude, longitude, href: link.href };
+  });
+}

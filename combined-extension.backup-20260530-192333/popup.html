@@ -143,38 +143,6 @@
     }
     #summary .stat-label, #live-panel .stat-label { color: var(--muted); font-size: 11px; font-weight: 500; }
     #summary .stat-value, #live-panel .stat-value { font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
-    /* City status pills */
-    .city-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 11px 5px 9px; border-radius: 999px;
-      background: var(--surface-2); border: 1px solid var(--border);
-      font-size: 12px; font-weight: 600; color: var(--text);
-      transition: background-color .2s ease, border-color .2s ease;
-    }
-    .city-pill .dot {
-      width: 9px; height: 9px; border-radius: 50%;
-      background: #b6bac8; flex: 0 0 9px;
-    }
-    .city-pill .count {
-      margin-left: 4px; padding: 1px 8px; border-radius: 999px;
-      background: rgba(0,0,0,.06); font-size: 11px; font-weight: 700; color: var(--muted);
-    }
-    .city-pill.processing { border-color: var(--brand); background: rgba(232,151,58,.10); }
-    .city-pill.processing .dot {
-      background: var(--brand);
-      box-shadow: 0 0 0 0 rgba(232,151,58,.7);
-      animation: pulse 1.4s infinite;
-    }
-    @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0   rgba(232,151,58,.7); }
-      70%  { box-shadow: 0 0 0 8px rgba(232,151,58,0); }
-      100% { box-shadow: 0 0 0 0   rgba(232,151,58,0); }
-    }
-    .city-pill.done       { border-color: rgba(47,158,111,.4); background: rgba(47,158,111,.08); }
-    .city-pill.done .dot  { background: var(--success); }
-    .city-pill.done .count{ background: rgba(47,158,111,.15); color: var(--success); }
-    .city-pill.error      { border-color: rgba(210,72,63,.4); background: rgba(210,72,63,.08); }
-    .city-pill.error .dot { background: var(--danger); }
     #live-feed li { padding: 2px 0; border-bottom: 1px solid var(--border); }
     #live-feed li:last-child { border-bottom: none; }
     #live-feed .ok  { color: var(--success); }
@@ -257,59 +225,6 @@
         <button id="saveSettingsButton" class="button">Save</button>
         <button id="closeSettingsButton" class="button ghost">Close</button>
       </div>
-    </div>
-  </div>
-
-  <div id="batch-panel" class="card">
-    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
-      <strong style="font-size:13px;">Batch Run — sweep all categories in one go</strong>
-      <span id="batch-summary" class="muted" style="font-size:11px;">No batch running.</span>
-    </div>
-    <p class="muted" style="margin:0 0 10px; font-size:12px;">
-      Type a location, pick categories, and the extension will scrape each Maps search in sequence,
-      dedupe across them, tag each row with its source query, then enrich the combined set.
-    </p>
-    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-      <select id="locCountry" class="input" style="flex:1 1 160px; min-width:140px;">
-        <option value="">Country…</option>
-      </select>
-      <select id="locRegion" class="input" style="flex:1 1 180px; min-width:160px;" disabled>
-        <option value="">Region…</option>
-      </select>
-      <button id="locAddButton" class="button ghost" title="Add a new country / region / city. Saved in this browser.">+ Add</button>
-      <button id="batchStartButton" class="button" disabled>Start Batch</button>
-      <button id="batchPauseButton" class="button ghost" disabled>Pause</button>
-      <button id="batchStopButton" class="button ghost" disabled>Stop Batch</button>
-      <button id="exportPerCityButton" class="button ghost" disabled style="margin-left:auto;" title="Download a separate CSV per city (split by Source Query).">Export per City</button>
-    </div>
-    <input id="batchLocation" type="hidden" />
-
-    <div id="city-picker" style="margin-top:12px; display:none;">
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-        <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Cities / Destinations</strong>
-        <label class="toggle" style="margin-left:auto;"><input type="checkbox" id="cityAllToggle"> Select all</label>
-      </div>
-      <div id="cityCheckboxes" style="display:flex; flex-wrap:wrap; gap:6px 12px;"></div>
-    </div>
-
-    <div id="city-progress" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
-      <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Cities progress</strong>
-      <div id="cityPills" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
-    </div>
-    <div id="batch-cats" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px 10px;">
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="hostels" checked> Hostels</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="hotels" checked> Hotels</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="resorts" checked> Resorts</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="bed and breakfast" checked> Bed &amp; Breakfasts</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="guesthouses"> Guesthouses</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="restaurants" checked> Restaurants</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="cafes"> Cafes</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="things to do" checked> Things to do</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="tours"> Tours</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="dive shops"> Dive shops</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="bars"> Bars</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="nightlife"> Nightlife</label>
-      <label class="toggle"><input type="checkbox" class="batch-cat" value="nightclubs"> Clubs</label>
     </div>
   </div>
 

@@ -1,0 +1,72 @@
+{
+  "Philippines": {
+    "Luzon (North & Central)": ["Manila", "Tagaytay", "Baguio", "Sagada", "Banaue", "Batad", "Vigan", "Pagudpud", "Laoag", "Baler", "Subic", "Anawangin Cove", "Nagsasa Cove", "Corregidor", "San Juan La Union"],
+    "Luzon (South / Bicol)": ["Legazpi", "Donsol", "Caramoan", "Calaguas", "Catanduanes", "Puraran"],
+    "Batanes": ["Basco", "Sabtang", "Itbayat"],
+    "Palawan": ["El Nido", "Coron", "Port Barton", "San Vicente", "Puerto Princesa", "Sabang", "Balabac"],
+    "Mindoro & nearby": ["Puerto Galera", "Sabang Beach", "White Beach", "Apo Reef"],
+    "Boracay & Western Visayas": ["Boracay", "Iloilo", "Gigantes Islands", "Bacolod", "Sipalay"],
+    "Cebu": ["Cebu City", "Mactan", "Oslob", "Moalboal", "Kawasan Falls", "Badian", "Bantayan Island", "Malapascua Island"],
+    "Bohol": ["Tagbilaran", "Panglao", "Chocolate Hills", "Loboc", "Anda"],
+    "Negros & Siquijor": ["Dumaguete", "Apo Island", "Siquijor"],
+    "Camiguin": ["Mambajao", "White Island", "Catarman"],
+    "Davao Region": ["Davao City", "Mount Apo", "Samal Island"],
+    "Siargao & Surigao": ["Siargao", "General Luna", "Cloud 9", "Pacifico", "Burgos", "Sugba Lagoon", "Bucas Grande", "Enchanted River", "Britania Islands"],
+    "Romblon": ["Tablas", "Romblon", "Carabao Island"]
+  },
+  "Thailand": {
+    "Bangkok": ["Bangkok"],
+    "Central / near Bangkok": ["Ayutthaya", "Amphawa", "Damnoen Saduak", "Kanchanaburi"],
+    "Northern Thailand": ["Chiang Mai", "Chiang Rai", "Pai", "Mae Hong Son", "Sukhothai", "Lampang", "Nan", "Chiang Khong"],
+    "Northeast (Isaan)": ["Khao Yai", "Phanom Rung", "Buriram", "Chiang Khan", "Loei", "Nong Khai"],
+    "Eastern Gulf coast": ["Pattaya", "Ko Samet", "Ko Chang", "Ko Kood"],
+    "Western / royal coast": ["Hua Hin", "Cha-am", "Khao Sok"],
+    "Southern Gulf islands": ["Ko Samui", "Ko Pha Ngan", "Ko Tao"],
+    "Andaman coast": ["Phuket", "Patong", "Kata", "Karon", "Phuket Town", "Rawai", "Krabi", "Ao Nang", "Railay", "Ko Phi Phi", "Ko Lanta", "Khao Lak", "Phang Nga Bay", "Koh Yao Noi", "Koh Yao Yai", "Similan Islands", "Ko Lipe"]
+  },
+  "Vietnam": {
+    "North": ["Hanoi", "Ha Long Bay", "Sapa", "Ninh Binh", "Ha Giang", "Cat Ba"],
+    "Central": ["Hue", "Hoi An", "Da Nang", "Phong Nha"],
+    "South": ["Ho Chi Minh City", "Mekong Delta", "Phu Quoc", "Da Lat", "Mui Ne", "Nha Trang"]
+  },
+  "Cambodia": {
+    "Siem Reap": ["Siem Reap", "Angkor Wat"],
+    "Phnom Penh": ["Phnom Penh"],
+    "Coast": ["Sihanoukville", "Koh Rong", "Koh Rong Samloem", "Kampot", "Kep"],
+    "Northwest": ["Battambang"]
+  },
+  "Laos": {
+    "North": ["Luang Prabang", "Vang Vieng"],
+    "Central": ["Vientiane"],
+    "South": ["Pakse", "Bolaven Plateau", "4000 Islands", "Si Phan Don"]
+  },
+  "Myanmar": {
+    "Main Destinations": ["Yangon", "Bagan", "Mandalay", "Inle Lake", "Ngapali Beach"]
+  },
+  "Malaysia": {
+    "Peninsular": ["Kuala Lumpur", "George Town", "Penang", "Batu Ferringhi", "Malacca", "Langkawi", "Pantai Cenang", "Kuah", "Cameron Highlands", "Taman Negara", "Perhentian Besar", "Perhentian Kecil", "Tioman Island"],
+    "Borneo": ["Kota Kinabalu", "Kuching", "Sipadan", "Semporna", "Sandakan"]
+  },
+  "Singapore": {
+    "Singapore": ["Singapore", "Marina Bay", "Sentosa", "Orchard Road", "Chinatown Singapore"]
+  },
+  "Indonesia": {
+    "Bali": ["Ubud", "Kuta Bali", "Seminyak", "Uluwatu", "Canggu", "Nusa Penida", "Nusa Lembongan", "Sanur", "Amed"],
+    "Java": ["Jakarta", "Yogyakarta", "Borobudur", "Prambanan", "Bandung", "Mount Bromo", "Malang"],
+    "Nusa Tenggara": ["Gili Trawangan", "Gili Air", "Gili Meno", "Lombok", "Kuta Lombok", "Senggigi", "Labuan Bajo", "Komodo", "Flores"],
+    "Sumatra": ["Lake Toba", "Bukit Lawang", "Mentawai Islands"],
+    "Sulawesi": ["Tana Toraja", "Bunaken"],
+    "Papua": ["Raja Ampat"]
+  },
+  "Brunei": {
+    "Main Destinations": ["Bandar Seri Begawan", "Ulu Temburong"]
+  },
+  "Timor-Leste": {
+    "Main Destinations": ["Dili", "Atauro Island"]
+  },
+  "Sri Lanka": {
+    "South Coast": ["Mirissa", "Weligama", "Unawatuna", "Galle", "Tangalle"],
+    "Hill Country": ["Ella", "Kandy", "Nuwara Eliya"],
+    "Cultural Triangle": ["Sigiriya", "Dambulla", "Anuradhapura"]
+  }
+}
