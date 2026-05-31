@@ -7,20 +7,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #eceef2;
+      --bg: #f5ecdc;          /* warm parchment */
       --surface: #ffffff;
-      --surface-2: #f5f6f8;
-      --border: #dde0e6;
-      --text: #181a1f;
-      --muted: #6b7180;
-      --brand: #e8973a;        /* amber / copper accent */
-      --brand-2: #f0b357;
-      --brand-ink: #b9701f;
-      --ink: #20242c;          /* gunmetal for dark buttons */
-      --ink-2: #2b3038;
-      --success: #2f9e6f;
-      --danger: #d2483f;
-      --shadow: 0 12px 30px -14px rgba(24, 26, 31, .42);
+      --surface-2: #faf3e6;   /* light cream */
+      --border: #e6d6bf;       /* warm taupe */
+      --text: #3a2918;         /* dark sepia */
+      --muted: #8a7458;        /* warm gray */
+      --brand: #c0532b;        /* rust / sienna — pulled from the logo */
+      --brand-2: #dd8650;      /* warm copper highlight */
+      --brand-ink: #8c3a1c;    /* deep rust */
+      --ink: #4a2e1d;          /* espresso / dark sepia */
+      --ink-2: #5c3a25;        /* lighter sepia */
+      --success: #6d8e4a;      /* warm olive (replaces neon green) */
+      --danger: #b54b3a;       /* terracotta (replaces fire engine red) */
+      --shadow: 0 12px 30px -14px rgba(74, 46, 29, .35);
       --radius: 14px;
     }
     * { box-sizing: border-box; }
@@ -29,52 +29,56 @@
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(900px 380px at 100% -10%, rgba(232,151,58,.16), transparent 60%),
-        radial-gradient(700px 320px at -10% 0%, rgba(32,36,44,.10), transparent 55%),
+        radial-gradient(900px 380px at 100% -10%, rgba(192,83,43,.14), transparent 60%),
+        radial-gradient(700px 320px at -10% 0%, rgba(221,134,80,.10), transparent 55%),
         var(--bg);
     }
     body.tab-view { max-width: 1180px; margin: 0 auto; padding: 28px; }
     body.tab-view #enrich-log { height: 240px; }
 
-    /* Header */
+    /* Header — warm parchment to complement the watercolor logo */
     .app-header {
       display: flex; align-items: center; gap: 14px;
-      padding: 16px 18px; margin-bottom: 16px;
-      background: linear-gradient(135deg, var(--ink), var(--ink-2));
+      padding: 14px 18px; margin-bottom: 16px;
+      background: linear-gradient(135deg, #fdf7eb, #f1e0c4);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,.06);
+      color: var(--text);
+      border: 1px solid var(--border);
       border-top: 2px solid var(--brand);
     }
     .app-header .logo {
-      width: 42px; height: 42px; flex: 0 0 42px;
-      display: grid; place-items: center; font-size: 22px;
-      background: linear-gradient(135deg, var(--brand), var(--brand-2));
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 12px;
-      box-shadow: 0 6px 14px -6px rgba(232,151,58,.7);
+      width: 54px; height: 54px; flex: 0 0 54px;
+      display: grid; place-items: center;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 6px 16px -8px rgba(192,83,43,.45);
+      overflow: hidden;
     }
-    .app-header h1 { font-size: 19px; font-weight: 800; margin: 0; letter-spacing: -.02em; }
-    .app-header p { margin: 2px 0 0; font-size: 12px; opacity: .7; font-weight: 500; }
+    .app-header .logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .app-header h1 {
+      font-size: 20px; font-weight: 800; margin: 0;
+      letter-spacing: -.02em; color: var(--brand-ink);
+    }
+    .app-header p { margin: 2px 0 0; font-size: 12px; opacity: .75; font-weight: 600; color: var(--muted); }
     .batch-pill {
       flex: 0 0 auto; max-width: 260px;
       display: flex; align-items: center; gap: 8px;
       padding: 8px 14px; border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.12);
-      font-size: 12px; color: #fff; font-weight: 600;
-      backdrop-filter: blur(6px);
+      background: rgba(192,83,43,.10);
+      border: 1px solid rgba(192,83,43,.28);
+      font-size: 12px; color: var(--brand-ink); font-weight: 700;
     }
     .batch-pill-label {
-      color: var(--brand-2); font-size: 10px; font-weight: 700;
+      color: var(--brand); font-size: 10px; font-weight: 800;
       text-transform: uppercase; letter-spacing: .08em;
     }
     #batch-pill-name {
       max-width: 180px; overflow: hidden; text-overflow: ellipsis;
       white-space: nowrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
     }
-    .batch-pill.dim #batch-pill-name { color: rgba(255,255,255,.55); font-style: italic; }
+    .batch-pill.dim #batch-pill-name { color: rgba(74,46,29,.5); font-style: italic; }
     .batch-inline {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 2px 9px; border-radius: 999px; margin-left: 8px;
@@ -106,17 +110,19 @@
       padding: 10px 16px; border-radius: 11px; color: #fff;
       background: linear-gradient(135deg, var(--brand), var(--brand-2)); position: relative;
       transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease, opacity .2s ease;
-      box-shadow: 0 6px 14px -8px rgba(232,151,58,.85);
+      box-shadow: 0 6px 14px -8px rgba(192,83,43,.85);
     }
-    .button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 18px -8px rgba(232,151,58,.9); }
+    .button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 18px -8px rgba(192,83,43,.9); }
     .button:active:not(:disabled) { transform: translateY(0); }
     .button:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
     .button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
     .button.ghost {
       background: var(--ink); color: #fff;
-      border: 1px solid rgba(255,255,255,.08); box-shadow: 0 6px 14px -10px rgba(24,26,31,.9);
+      border: 1px solid rgba(255,255,255,.06); box-shadow: 0 6px 14px -10px rgba(74,46,29,.9);
     }
     .button.ghost:hover:not(:disabled) { background: var(--ink-2); }
+    .button.success { box-shadow: 0 6px 14px -8px rgba(109,142,74,.8); }
+    .button.danger  { box-shadow: 0 6px 14px -8px rgba(181,75,58,.85); }
     .button.success { background: var(--success); box-shadow: 0 6px 14px -8px rgba(22,165,113,.8); }
     .button.danger  { background: var(--danger);  box-shadow: 0 6px 14px -8px rgba(239,69,101,.8); }
     .button .ico { margin-right: 6px; }
@@ -126,7 +132,7 @@
       font-family: inherit; font-size: 13px; background: var(--surface-2); color: var(--text);
       transition: border-color .2s ease, box-shadow .2s ease; min-width: 150px;
     }
-    .input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(232,151,58,.18); }
+    .input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(192,83,43,.18); }
 
     .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); font-weight: 500; cursor: pointer; }
     .toggle input { accent-color: var(--brand); width: 15px; height: 15px; }
@@ -159,22 +165,34 @@
       margin-left: 4px; padding: 1px 8px; border-radius: 999px;
       background: rgba(0,0,0,.06); font-size: 11px; font-weight: 700; color: var(--muted);
     }
-    .city-pill.processing { border-color: var(--brand); background: rgba(232,151,58,.10); }
+    .city-pill.processing { border-color: var(--brand); background: rgba(192,83,43,.10); }
     .city-pill.processing .dot {
       background: var(--brand);
-      box-shadow: 0 0 0 0 rgba(232,151,58,.7);
+      box-shadow: 0 0 0 0 rgba(192,83,43,.7);
       animation: pulse 1.4s infinite;
     }
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0   rgba(232,151,58,.7); }
-      70%  { box-shadow: 0 0 0 8px rgba(232,151,58,0); }
-      100% { box-shadow: 0 0 0 0   rgba(232,151,58,0); }
+      0%   { box-shadow: 0 0 0 0   rgba(192,83,43,.7); }
+      70%  { box-shadow: 0 0 0 8px rgba(192,83,43,0); }
+      100% { box-shadow: 0 0 0 0   rgba(192,83,43,0); }
     }
-    .city-pill.done       { border-color: rgba(47,158,111,.4); background: rgba(47,158,111,.08); }
+    .city-pill.done       { border-color: rgba(109,142,74,.4); background: rgba(109,142,74,.10); }
     .city-pill.done .dot  { background: var(--success); }
-    .city-pill.done .count{ background: rgba(47,158,111,.15); color: var(--success); }
-    .city-pill.error      { border-color: rgba(210,72,63,.4); background: rgba(210,72,63,.08); }
+    .city-pill.done .count{ background: rgba(109,142,74,.18); color: var(--success); }
+    .city-pill.error      { border-color: rgba(181,75,58,.4); background: rgba(181,75,58,.10); }
     .city-pill.error .dot { background: var(--danger); }
+    .city-pill.selectable { cursor: pointer; user-select: none; transition: transform .1s ease, box-shadow .15s ease; }
+    .city-pill.selectable:hover { transform: translateY(-1px); }
+    .city-pill.selected {
+      box-shadow: 0 0 0 2px var(--brand), 0 6px 14px -8px rgba(192,83,43,.5);
+      border-color: var(--brand);
+    }
+    .city-pill .check {
+      display: none; width: 14px; height: 14px; border-radius: 4px;
+      background: var(--brand); color: #fff; font-size: 10px;
+      align-items: center; justify-content: center; margin-left: 2px; font-weight: 800;
+    }
+    .city-pill.selected .check { display: inline-flex; }
     #live-feed li { padding: 2px 0; border-bottom: 1px solid var(--border); }
     #live-feed li:last-child { border-bottom: none; }
     #live-feed .ok  { color: var(--success); }
@@ -187,14 +205,15 @@
     #enrich-panel .panel-head strong { font-size: 13px; font-weight: 700; }
     #enrich-status { font-size: 12px; color: var(--muted); font-weight: 500; }
     progress {
-      width: 100%; height: 8px; -webkit-appearance: none; appearance: none; border: none; border-radius: 99px; overflow: hidden; background: #ececf6;
+      width: 100%; height: 8px; -webkit-appearance: none; appearance: none; border: none; border-radius: 99px; overflow: hidden; background: #ead7b8;
     }
-    progress::-webkit-progress-bar { background: #ececf6; border-radius: 99px; }
-    progress::-webkit-progress-value { background: linear-gradient(90deg, var(--brand-ink), var(--brand)); border-radius: 99px; }
+    progress::-webkit-progress-bar { background: #ead7b8; border-radius: 99px; }
+    progress::-webkit-progress-value { background: linear-gradient(90deg, var(--brand-ink), var(--brand), var(--brand-2)); border-radius: 99px; }
     #enrich-log {
-      background: #14161b; color: #f0b357; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      background: #2a1d12; color: #f4c089; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
       font-size: 11px; line-height: 1.55; height: 150px; overflow: auto;
       padding: 12px; border-radius: 11px; white-space: pre-wrap; margin-top: 10px;
+      border: 1px solid #3a2818;
     }
 
     /* Table */
@@ -208,10 +227,10 @@
 </head>
 <body>
   <header class="app-header">
-    <div class="logo">&#x1F5FA;&#xFE0F;</div>
+    <div class="logo"><img src="logo.png" alt="DCS"></div>
     <div style="flex:1; min-width:0;">
       <h1>Partner Collection</h1>
-      <p>By ERT Collective</p>
+      <p>by DCS · Data Collection System</p>
     </div>
     <div id="batch-pill" class="batch-pill" title="Current dataset / output filename">
       <span class="batch-pill-label">Batch</span>
@@ -230,6 +249,8 @@
       <button id="downloadCsvButton" class="button success" disabled>Download CSV</button>
       <button id="pushAdminButton" class="button success" disabled>Push to Admin</button>
       <button id="runLocalScraperButton" class="button" style="background:linear-gradient(135deg,#e1306c,#a833e1);box-shadow:0 6px 14px -8px rgba(225,48,108,.85);" disabled title="POSTs the current rows to your local Experience Organizer server (http://localhost:8000) to fill missing Instagram handles + first-6 IG post thumbnails.">Run Local Enrichment</button>
+      <button id="localPauseButton" class="button ghost" disabled title="Pause the running local enrichment after the current row finishes. Progress is saved to data/_local_enrichment.partial.csv every few seconds.">Pause Local</button>
+      <button id="savePartialButton" class="button ghost" title="Download the local enricher's current in-progress CSV (whatever rows are filled so far). Use Load CSV later to resume.">Save Partial</button>
       <button id="settingsButton" class="button ghost" title="Endpoint settings">⚙</button>
       <button id="generatePitchButton" class="button ghost">Generate Pitch</button>
       <input type="text" id="filenameInput" class="input" placeholder="Enter file name" />
@@ -280,7 +301,8 @@
       <button id="batchStartButton" class="button" disabled>Start Batch</button>
       <button id="batchPauseButton" class="button ghost" disabled>Pause</button>
       <button id="batchStopButton" class="button ghost" disabled>Stop Batch</button>
-      <button id="exportPerCityButton" class="button ghost" disabled style="margin-left:auto;" title="Download a separate CSV per city (split by Source Query).">Export per City</button>
+      <button id="combineCitiesButton" class="button" disabled style="margin-left:auto;" title="Click pills below to pick cities, then export them as ONE combined CSV.">Combine Cities → CSV</button>
+      <button id="exportPerCityButton" class="button ghost" disabled title="Download a separate CSV per city.">Export per City</button>
     </div>
     <input id="batchLocation" type="hidden" />
 
@@ -293,8 +315,11 @@
     </div>
 
     <div id="city-progress" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
-      <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Cities progress</strong>
-      <div id="cityPills" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+      <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px;">
+        <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Cities progress</strong>
+        <span id="city-pills-hint" class="muted" style="font-size:11px; display:none;">Click pills to pick which to combine</span>
+      </div>
+      <div id="cityPills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
     </div>
     <div id="batch-cats" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px 10px;">
       <label class="toggle"><input type="checkbox" class="batch-cat" value="hostels" checked> Hostels</label>

@@ -8,6 +8,26 @@ let PAUSED = false;
 //     popup is open or closed. ---
 const AUTOSAVE_ALARM = 'partner-collection-autosave';
 
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], n = text[i + 1];
+    if (inQ) {
+      if (c === '"' && n === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (c === '\r') {}
+      else cur += c;
+    }
+  }
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
 function csvFromRows(headers, rows) {
   return [headers, ...rows].map((r) => r.map((v) => {
     v = v == null ? '' : String(v);
@@ -44,6 +64,118 @@ function stopAutoSave() {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === AUTOSAVE_ALARM) autoSaveNow('10-min auto-save');
 });
+
+// ---------------------------------------------------------------------------
+// Local enrichment — same NDJSON streaming the popup used to do, but runs in
+// the service worker so closing/minimizing the popup doesn't kill it. Live
+// state is persisted to chrome.storage.local.localEnrichState; the popup
+// reads it on open and subscribes to chrome.storage.onChanged for updates.
+// ---------------------------------------------------------------------------
+let LOCAL_ENRICH_ACTIVE = false;
+
+async function runLocalEnrich(csvText, streamUrl) {
+  if (LOCAL_ENRICH_ACTIVE) { log('Local enrichment already running — ignored.'); return; }
+  LOCAL_ENRICH_ACTIVE = true;
+  const totalHint = Math.max(0, csvText.split('\n').filter((l) => l.trim().length).length - 1);
+
+  let state = {
+    phase: 'starting', sub: 'instagram',
+    total: totalHint, completed: 0, filled: 0, missed: 0, postsCount: 0,
+    currentName: '', paused: false, ts: Date.now(),
+  };
+  const saveState = () => {
+    state.ts = Date.now();
+    return chrome.storage.local.set({ localEnrichState: { ...state } });
+  };
+  await saveState();
+  log(`Streaming ${totalHint} rows from ${streamUrl}…`);
+
+  try {
+    const res = await fetch(streamUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'text/csv' },
+      body: csvText,
+    });
+    if (!res.ok || !res.body) {
+      const msg = await res.text().catch(() => res.statusText);
+      log(`⚠️ Local enricher failed (${res.status}): ${msg}`);
+      state.phase = 'error'; state.error = `${res.status}: ${msg}`;
+      await saveState();
+      return;
+    }
+    state.phase = 'running'; await saveState();
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    let finalCsv = null;
+
+    readLoop: while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        const t = line.trim(); if (!t) continue;
+        let ev; try { ev = JSON.parse(t); } catch { continue; }
+
+        if (ev.type === 'start') {
+          state.total = ev.total || state.total;
+          state.sub = 'instagram';
+        } else if (ev.type === 'ig-row') {
+          state.completed++;
+          if (ev.handle) { state.filled++; log(`✓ ${ev.name} → ${ev.handle}`); }
+          else           { state.missed++; }
+          state.currentName = ev.name;
+        } else if (ev.type === 'phase' && ev.phase === 'igposts') {
+          state.sub = 'igposts'; state.completed = 0;
+          state.total = ev.total || 0;
+          log(`— Phase: IG posts (${ev.total} accounts)`);
+        } else if (ev.type === 'igposts-row') {
+          state.completed++;
+          if (ev.count > 0) state.postsCount += ev.count;
+          state.currentName = ev.name;
+        } else if (ev.type === 'done') {
+          finalCsv = ev.csv;
+          state.phase = 'done';
+          state.summary = {
+            filled: ev.filled, already: ev.already, total: ev.total,
+            posts: ev.posts, loggedIn: !!ev.loggedIn,
+          };
+          break readLoop;
+        } else if (ev.type === 'error') {
+          state.phase = 'error'; state.error = ev.message;
+          break readLoop;
+        }
+        await saveState();
+      }
+    }
+
+    // On success: write the new CSV (with IG handles + IG_Img_1..6) back into
+    // storage so the popup table reflects the enriched data.
+    if (finalCsv) {
+      const parsed = parseCSV(finalCsv).filter((r) => r.some((v) => (v || '').length));
+      if (parsed.length) {
+        const newHeaders = parsed.shift();
+        const newRows = parsed.map((r) => {
+          const o = new Array(newHeaders.length).fill('');
+          for (let i = 0; i < r.length && i < newHeaders.length; i++) o[i] = r[i] ?? '';
+          return o;
+        });
+        await chrome.storage.local.set({ headers: newHeaders, rows: newRows });
+        log(`✓ Local enrichment complete — ${newRows.length} rows updated.`);
+      }
+    }
+    await saveState();
+  } catch (e) {
+    log(`⚠️ Local enrichment error: ${e.message}`);
+    state.phase = 'error'; state.error = e.message;
+    await saveState();
+  } finally {
+    LOCAL_ENRICH_ACTIVE = false;
+  }
+}
 
 async function awaitResume() {
   if (!PAUSED) return;
@@ -535,6 +667,9 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'PAUSE_BATCH')  { PAUSED = true;  log('⏸ Pause requested.'); }
   if (msg.type === 'RESUME_BATCH') { PAUSED = false; log('▶ Resume requested.'); }
   if (msg.type === 'AUTO_SAVE_NOW') autoSaveNow('manual');
+  if (msg.type === 'START_LOCAL_ENRICH') {
+    runLocalEnrich(msg.csvText, msg.streamUrl);
+  }
   if (msg.type === 'START_BATCH') {
     const cities = Array.isArray(msg.cities) ? msg.cities
       : (msg.location ? [{ city: msg.location, region: '', country: '', full: msg.location }] : []);

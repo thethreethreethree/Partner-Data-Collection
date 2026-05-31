@@ -248,6 +248,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const cityProgressWrap  = document.getElementById('city-progress');
     const cityPillsEl       = document.getElementById('cityPills');
     const exportPerCityBtn  = document.getElementById('exportPerCityButton');
+    const combineCitiesBtn  = document.getElementById('combineCitiesButton');
+    const cityPillsHint     = document.getElementById('city-pills-hint');
+    const pillSelection     = new Set(); // city names selected for combine-export
     const batchCatCheckboxes = () => Array.from(document.querySelectorAll('.batch-cat'));
 
     // Locations data: merge bundled JSON with user's custom additions.
@@ -436,20 +439,51 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // --- City status pills ---
-    function renderCityPills(cities) {
-      if (!cities || !cities.length) { cityProgressWrap.style.display = 'none'; cityPillsEl.innerHTML = ''; return; }
+    function renderCityPills(cities, opts) {
+      if (!cities || !cities.length) {
+        cityProgressWrap.style.display = 'none';
+        cityPillsEl.innerHTML = '';
+        cityPillsHint.style.display = 'none';
+        return;
+      }
       cityProgressWrap.style.display = 'block';
+      // Once the batch is done, pills become click-to-select for the combine export.
+      const selectable = !!(opts && opts.selectable);
+      cityPillsHint.style.display = selectable ? 'inline' : 'none';
       cityPillsEl.innerHTML = cities.map((c) => {
         const cls = c.status || 'pending';
+        const name = c.city || c.full;
         const cnt = (c.status === 'done' || c.status === 'processing') ? `<span class="count">${c.kept || 0}</span>` : '';
-        return `<div class="city-pill ${cls}"><span class="dot"></span><span class="name">${c.city || c.full}</span>${cnt}</div>`;
+        const selClass = selectable ? ' selectable' + (pillSelection.has(name) ? ' selected' : '') : '';
+        return `<div class="city-pill ${cls}${selClass}" data-city="${name.replace(/"/g, '&quot;')}">` +
+               `<span class="dot"></span><span class="name">${name}</span>${cnt}` +
+               `<span class="check">✓</span></div>`;
       }).join('');
     }
+
+    function updateCombineButtonLabel(totalCities) {
+      const n = pillSelection.size;
+      combineCitiesBtn.textContent = n === 0
+        ? `Combine Cities → CSV`
+        : (n === totalCities ? `Combine All ${n} → CSV` : `Combine ${n} → CSV`);
+    }
+
+    cityPillsEl.addEventListener('click', async (e) => {
+      const pill = e.target.closest('.city-pill.selectable');
+      if (!pill) return;
+      const name = pill.getAttribute('data-city');
+      if (!name) return;
+      if (pillSelection.has(name)) pillSelection.delete(name);
+      else pillSelection.add(name);
+      pill.classList.toggle('selected');
+      const { batchState } = await chrome.storage.local.get('batchState');
+      updateCombineButtonLabel((batchState && batchState.cities && batchState.cities.length) || 0);
+    });
 
     // --- Restore batch dashboard from persisted state on popup open ---
     function applyBatchState(s) {
       if (!s) { cityProgressWrap.style.display = 'none'; return; }
-      renderCityPills(s.cities || []);
+      renderCityPills(s.cities || [], { selectable: s.phase === 'done' });
       if (s.phase === 'running') {
         livePanel.style.display = 'block';
         const idx = s.index || 0;
@@ -475,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
         batchPauseButton.textContent = s.paused ? 'Resume' : 'Pause';
         batchStopButton.disabled  = false;
         exportPerCityBtn.disabled = true;
+        combineCitiesBtn.disabled = true;
       } else if (s.phase === 'done') {
         const summary = `${s.runningTotal} unique rows from ${s.total} queries` +
                         (s.dupes ? ` · ${s.dupes} dupes removed` : '');
@@ -483,7 +518,10 @@ document.addEventListener('DOMContentLoaded', function () {
         batchPauseButton.disabled = true;
         batchPauseButton.textContent = 'Pause';
         batchStopButton.disabled  = true;
-        exportPerCityBtn.disabled = !(s.cities && s.cities.length);
+        const hasCities = !!(s.cities && s.cities.length);
+        exportPerCityBtn.disabled = !hasCities;
+        combineCitiesBtn.disabled = !hasCities;
+        updateCombineButtonLabel((s.cities || []).length);
       }
     }
     chrome.storage.local.get('batchState', ({ batchState }) => applyBatchState(batchState));
@@ -526,6 +564,47 @@ document.addEventListener('DOMContentLoaded', function () {
         a.click(); a.remove();
       }
       enrichLog.textContent += `Exported ${byCity.size} per-city CSV${byCity.size === 1 ? '' : 's'}.\n`;
+      enrichLog.scrollTop = enrichLog.scrollHeight;
+    });
+
+    // --- Combine Selected Cities → one CSV. Click pills to pick, then click here.
+    //     If nothing is selected, exports ALL cities as one combined file
+    //     (effectively a labeled-download alias of the master CSV).
+    combineCitiesBtn.addEventListener('click', async () => {
+      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
+      if (!rows || !rows.length) { alert('No rows to export.'); return; }
+      const iCity = headers.indexOf('City');
+      if (iCity < 0) { alert('No City column in this dataset.'); return; }
+      const wantAll = pillSelection.size === 0;
+      const filtered = wantAll
+        ? rows
+        : rows.filter((r) => pillSelection.has((r[iCity] || '').trim()));
+      if (filtered.length === 0) {
+        alert('None of the rows match the selected cities. Did you click any pills?');
+        return;
+      }
+      const baseName = (filenameInput.value.trim() || 'batch')
+        .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+      // Build a name reflecting the selection: combined_<n>cities or list-of-slugs (capped).
+      let label;
+      if (wantAll) {
+        label = 'all_cities';
+      } else if (pillSelection.size <= 3) {
+        label = [...pillSelection].map((c) =>
+          c.replace(/[^a-z0-9]+/gi, '_').toLowerCase()
+        ).join('-');
+      } else {
+        label = `combined_${pillSelection.size}cities`;
+      }
+      const csv = toCSV([headers, ...filtered]);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${baseName}_${label}.csv`;
+      a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove();
+      const cityList = wantAll ? 'all cities' : [...pillSelection].join(', ');
+      enrichLog.textContent += `Combined export → ${a.download} (${filtered.length} rows: ${cityList})\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
     });
 
@@ -707,146 +786,117 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
+    // --- Local enrichment now runs entirely in the background service worker
+    //     so closing/minimizing the popup doesn't kill the streaming connection.
+    //     We just send a START_LOCAL_ENRICH message and watch storage for state.
+    const localPauseButton  = document.getElementById('localPauseButton');
+    const savePartialButton = document.getElementById('savePartialButton');
+
+    function currentLocalBase() {
+      // Live read — user can change it in settings without reload.
+      return (localScraperUrlInput.value || DEFAULT_LOCAL_URL).trim()
+        .replace(/\/scrape-instagram(-stream)?$/, '');
+    }
+
+    // Pause / Resume — always bound; reads paused state from server.
+    let localPausedView = false;
+    localPauseButton.addEventListener('click', async () => {
+      const base = currentLocalBase();
+      const ep = localPausedView ? '/resume-scrape' : '/pause-scrape';
+      try {
+        await fetch(base + ep, { method: 'POST' });
+        localPausedView = !localPausedView;
+        localPauseButton.textContent = localPausedView ? 'Resume Local' : 'Pause Local';
+        enrichLog.textContent += localPausedView
+          ? `⏸ Pause requested. Server halts after the current row. Partial CSV saved to data/_local_enrichment.partial.csv every ~5s.\n`
+          : `▶ Resume requested.\n`;
+        enrichLog.scrollTop = enrichLog.scrollHeight;
+      } catch (e) {
+        enrichLog.textContent += `⚠️ Pause toggle failed: ${e.message}\n`;
+      }
+    });
+
+    // Save Partial — always bound; pulls server's in-memory CSV anytime.
+    savePartialButton.addEventListener('click', async () => {
+      try {
+        const r = await fetch(currentLocalBase() + '/dump-current');
+        const csv = await r.text();
+        if (!csv || csv.length < 20) { alert('Server has no snapshot yet (run hasn\'t produced data).'); return; }
+        const baseName = (filenameInput.value.trim() || 'local_enrichment')
+          .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${baseName}_partial_${ts}.csv`;
+        a.style.display = 'none';
+        document.body.appendChild(a); a.click(); a.remove();
+        enrichLog.textContent += `💾 Saved partial snapshot → ${a.download}\n`;
+        enrichLog.scrollTop = enrichLog.scrollHeight;
+      } catch (e) {
+        alert(`Couldn't reach local server: ${e.message}`);
+      }
+    });
+
+    // Apply localEnrichState → live panel. Restores after popup reopen and
+    // updates while the popup is open via chrome.storage.onChanged.
+    function applyLocalEnrichState(s) {
+      if (!s) return;
+      enrichPanel.style.display = 'block';
+      livePanel.style.display = 'block';
+      const phaseLabel = s.sub === 'igposts'
+        ? `Collecting IG posts · ${s.completed}/${s.total}`
+        : `Finding Instagram handles · ${s.completed}/${s.total}`;
+      if (s.phase === 'running' || s.phase === 'starting') {
+        livePhaseEl.textContent = phaseLabel;
+        liveCurrent.textContent = s.currentName || 'Starting…';
+        liveProg.max = s.total || 1;
+        liveProg.value = s.completed || 0;
+        liveCompletedEl.textContent = String(s.completed || 0);
+        liveFilledEl.textContent    = String(s.filled || 0);
+        liveMissedEl.textContent    = String(s.missed || 0);
+        livePostsEl.textContent     = String(s.postsCount || 0);
+        runLocalScraperButton.disabled = true;
+        localPauseButton.disabled  = false;
+      } else if (s.phase === 'done') {
+        const sum = s.summary || {};
+        livePhaseEl.textContent = `Done · filled ${sum.filled || 0} new IG handles` +
+          (sum.loggedIn ? `, posts for ${sum.posts || 0} accounts` : ', posts skipped (not logged in)');
+        liveCurrent.textContent = '✓ Complete';
+        liveProg.value = liveProg.max;
+        runLocalScraperButton.disabled = false;
+        localPauseButton.disabled = true;
+        localPausedView = false;
+        localPauseButton.textContent = 'Pause Local';
+      } else if (s.phase === 'error') {
+        livePhaseEl.textContent = `Error: ${s.error || 'unknown'}`;
+        liveCurrent.textContent = '⚠️ Stopped';
+        runLocalScraperButton.disabled = false;
+        localPauseButton.disabled = true;
+      }
+    }
+    chrome.storage.local.get('localEnrichState', ({ localEnrichState }) =>
+      applyLocalEnrichState(localEnrichState));
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.localEnrichState) {
+        applyLocalEnrichState(changes.localEnrichState.newValue);
+      }
+    });
+
     runLocalScraperButton.addEventListener('click', async () => {
       const { headers, rows, localScraperUrl } =
         await chrome.storage.local.get(['headers','rows','localScraperUrl']);
       if (!rows || !headers || rows.length === 0) { alert('No rows to enrich.'); return; }
       const baseUrl = (localScraperUrl || DEFAULT_LOCAL_URL).trim();
-      // Force the streaming endpoint regardless of which path the user saved.
       const streamUrl = baseUrl.replace(/\/scrape-instagram(-stream)?$/, '/scrape-instagram-stream');
-
       const csvIn = toCSV([headers, ...rows]);
-      const origLabel = runLocalScraperButton.textContent;
-      runLocalScraperButton.disabled = true;
-      runLocalScraperButton.textContent = `Enriching ${rows.length}…`;
       resetLivePanel();
       enrichPanel.style.display = 'block';
-      enrichLog.textContent +=
-        `Streaming ${rows.length} rows from ${streamUrl}…\n`;
+      enrichLog.textContent += `Sending ${rows.length} rows to background worker → ${streamUrl}\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
-
-      // Live counters
-      let total = rows.length;
-      let completed = 0, filled = 0, missed = 0, postsCount = 0;
-      let phase = 'instagram';
-      let finalCsv = null, finalLoggedIn = false, finalErr = null;
-
-      try {
-        const res = await fetch(streamUrl, {
-          method: 'POST',
-          headers: { 'content-type': 'text/csv' },
-          body: csvIn,
-        });
-        if (!res.ok || !res.body) {
-          const msg = await res.text().catch(() => res.statusText);
-          enrichLog.textContent += `⚠️ Local enricher failed (${res.status}): ${msg}\n`;
-          livePhaseEl.textContent = `Error (${res.status})`;
-          return;
-        }
-
-        // NDJSON: one JSON event per line.
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = '';
-        readLoop: while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split('\n');
-          buf = lines.pop() ?? '';
-          for (const line of lines) {
-            const t = line.trim(); if (!t) continue;
-            let ev; try { ev = JSON.parse(t); } catch { continue; }
-
-            if (ev.type === 'start') {
-              total = ev.total || total;
-              liveProg.max = total || 1;
-              livePhaseEl.textContent = `Finding Instagram handles · ${total} rows`;
-              pushFeed(`— Phase: Instagram handles (${total} rows)`, 'info');
-            } else if (ev.type === 'ig-row') {
-              completed++;
-              const handle = (ev.handle || '').match(/instagram\.com\/([^/?#]+)/i)?.[1] || ev.handle;
-              if (ev.handle) { filled++; pushFeed(`✓ ${ev.name}  →  @${handle}`, 'ok'); }
-              else { missed++; pushFeed(`· ${ev.name}`, 'miss'); }
-              liveCurrent.textContent = ev.name;
-              liveProg.value = completed;
-              liveCompletedEl.textContent = String(completed);
-              liveFilledEl.textContent    = String(filled);
-              liveMissedEl.textContent    = String(missed);
-            } else if (ev.type === 'phase' && ev.phase === 'igposts') {
-              phase = 'igposts';
-              completed = 0;
-              total = ev.total || 0;
-              liveProg.max = total || 1; liveProg.value = 0;
-              liveCompletedEl.textContent = '0';
-              livePhaseEl.textContent = `Collecting IG posts · ${total} accounts`;
-              pushFeed(`— Phase: IG posts (${total} accounts with handles)`, 'info');
-            } else if (ev.type === 'igposts-row') {
-              completed++;
-              if (ev.count > 0) postsCount += ev.count;
-              liveCurrent.textContent = ev.name;
-              liveProg.value = completed;
-              liveCompletedEl.textContent = String(completed);
-              livePostsEl.textContent     = String(postsCount);
-              if (ev.already)        pushFeed(`= ${ev.name} (already had posts)`, 'miss');
-              else if (ev.count > 0) pushFeed(`✓ ${ev.name}: ${ev.count} post(s)`, 'ok');
-              else                   pushFeed(`· ${ev.name}: no posts`, 'miss');
-            } else if (ev.type === 'done') {
-              finalCsv = ev.csv; finalLoggedIn = !!ev.loggedIn;
-              livePhaseEl.textContent =
-                `Done · filled ${ev.filled} new IG handles (${ev.already} already had one)` +
-                (ev.loggedIn ? `, posts for ${ev.posts} accounts` : ', posts skipped (not logged in)');
-              liveCurrent.textContent = '✓ Complete';
-              if (total > 0) { liveProg.value = liveProg.max; }
-              break readLoop;
-            } else if (ev.type === 'error') {
-              finalErr = ev.message;
-              livePhaseEl.textContent = `Error: ${ev.message}`;
-              liveCurrent.textContent = '⚠️ Stopped';
-              break readLoop;
-            }
-          }
-        }
-
-        if (finalErr) {
-          enrichLog.textContent += `⚠️ Local enricher error: ${finalErr}\n`;
-          return;
-        }
-        if (!finalCsv) {
-          enrichLog.textContent += `⚠️ Stream ended without a 'done' event.\n`;
-          return;
-        }
-        const parsed = parseCSV(finalCsv);
-        if (!parsed.length) {
-          enrichLog.textContent += `⚠️ Local enricher returned empty CSV.\n`;
-          return;
-        }
-        const newHeaders = parsed.shift();
-        const newRows = parsed
-          .filter((r) => r.some((v) => (v || '').length))
-          .map((r) => {
-            const o = new Array(newHeaders.length).fill('');
-            for (let i = 0; i < r.length && i < newHeaders.length; i++) o[i] = r[i] ?? '';
-            return o;
-          });
-        await chrome.storage.local.set({ headers: newHeaders, rows: newRows });
-        renderTable(newHeaders, newRows);
-        enrichLog.textContent +=
-          `✓ Local enrichment done: filled ${filled} new IG handles, ${missed} missed.\n` +
-          (finalLoggedIn
-            ? `   IG posts collected: ${postsCount} thumbnails across ${completed} accounts.\n`
-            : `   IG posts skipped (not logged in — run ig-login.mjs in the Experience Organizer folder).\n`);
-      } catch (e) {
-        enrichLog.textContent +=
-          `⚠️ Couldn't reach the local enricher: ${e.message}\n` +
-          `   Is the Experience Organizer server running? Double-click start.bat.\n`;
-        livePhaseEl.textContent = `Error: ${e.message}`;
-        liveCurrent.textContent = '⚠️ Connection failed';
-      } finally {
-        runLocalScraperButton.textContent = origLabel;
-        runLocalScraperButton.disabled = false;
-        enrichLog.scrollTop = enrichLog.scrollHeight;
-      }
+      runLocalScraperButton.disabled = true;
+      localPauseButton.disabled = false;
+      chrome.runtime.sendMessage({ type: 'START_LOCAL_ENRICH', csvText: csvIn, streamUrl });
     });
 
     document.getElementById('generatePitchButton').addEventListener('click', async () => {
@@ -883,6 +933,7 @@ document.addEventListener('DOMContentLoaded', function () {
       enrichLog.textContent = '';
       batchSummary.textContent = 'No batch running.';
       livePanel.style.display = 'none';
+      pillSelection.clear();
       downloadCsvBtn.disabled = true;
       enrichButton.disabled = true;
       stopButton.disabled = true;
