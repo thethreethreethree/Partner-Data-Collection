@@ -495,8 +495,15 @@ const batchEvent = async (payload) => {
   chrome.runtime.sendMessage({ type: 'BATCH', ...payload }).catch(() => {});
 };
 
-async function scrapeQueryTab(query) {
-  const url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
+async function scrapeQueryTab(query, anchor) {
+  // anchor (optional): { lat, lng, zoom } from coords.json. When present,
+  // append /@lat,lng,zoom to constrain Maps' search to that exact spot —
+  // much more specific than text alone, and avoids cross-region collisions.
+  let url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
+  if (anchor && typeof anchor.lat === 'number' && typeof anchor.lng === 'number') {
+    const z = anchor.zoom || 13;
+    url += `/@${anchor.lat},${anchor.lng},${z}z`;
+  }
   const tab = await openTab(url);
 
   let cards = [];
@@ -609,9 +616,11 @@ async function runBatch(cities, categories) {
       await awaitResume();
       if (ABORT) { log('Batch stopped.'); break outer; }
       const cat = categories[cati];
-      // Simpler search format: "<category> in <city>" only — region/country
-      // are dropped to match how a normal user types into Maps.
-      const q = `${cat} in ${cityObj.city}`;
+      // Full-specificity search format: "<category> in <city>, <region>, <country>".
+      // Including region + country tells Maps exactly which location we mean
+      // (no ambiguous "San Juan", "Cebu City variant", etc.) and seems to give
+      // better lazy-load behavior on borderline-size queries.
+      const q = `${cat} in ${cityObj.full}`;
       queryIdx++;
       const evtBase = {
         cityIndex: ci, total: totalQueries, index: queryIdx,
@@ -621,7 +630,10 @@ async function runBatch(cities, categories) {
       batchEvent({ phase: 'scraping', ...evtBase });
       log(`   [${queryIdx}/${totalQueries}] scraping "${q}"`);
 
-      const { cards, captcha } = await scrapeQueryTab(q);
+      const anchor = (cityObj.lat != null && cityObj.lng != null)
+        ? { lat: cityObj.lat, lng: cityObj.lng, zoom: cityObj.zoom || 13 }
+        : null;
+      const { cards, captcha } = await scrapeQueryTab(q, anchor);
       if (captcha) {
         log(`⚠️ Google captcha hit on "${q}". Solve it in the open tab, then click Start Batch again.`);
         cityStatus[ci].status = 'error';

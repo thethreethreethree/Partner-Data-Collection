@@ -258,11 +258,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Locations data: merge bundled JSON with user's custom additions.
     let LOCATIONS = {};
+    let COORDS = {}; // city name → {lat, lng, zoom} for geo-anchored URLs
     const LOCATIONS_URL = chrome.runtime.getURL('locations.json');
+    const COORDS_URL    = chrome.runtime.getURL('coords.json');
     async function loadLocations() {
       const bundled = await fetch(LOCATIONS_URL).then((r) => r.json()).catch(() => ({}));
+      const coordsRaw = await fetch(COORDS_URL).then((r) => r.json()).catch(() => ({}));
+      // Strip metadata keys (e.g. "_comment") and any non-object entries.
+      COORDS = Object.fromEntries(
+        Object.entries(coordsRaw).filter(([k, v]) =>
+          !k.startsWith('_') && v && typeof v === 'object' && typeof v.lat === 'number'),
+      );
       const { customLocations = {} } = await chrome.storage.local.get('customLocations');
-      // Deep-merge bundled + custom.
       const merged = JSON.parse(JSON.stringify(bundled));
       for (const country of Object.keys(customLocations)) {
         merged[country] = merged[country] || {};
@@ -404,10 +411,14 @@ document.addEventListener('DOMContentLoaded', function () {
       const categories = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
       if (!country || !region || cityNames.length === 0) { alert('Pick a country, a region, and at least one city.'); return; }
       if (categories.length === 0) { alert('Pick at least one category.'); return; }
-      const cities = cityNames.map((city) => ({
-        city, region, country,
-        full: `${city}, ${region}, ${country}`,
-      }));
+      const cities = cityNames.map((city) => {
+        const obj = { city, region, country, full: `${city}, ${region}, ${country}` };
+        // Attach coords if we have them — background uses these to build a
+        // geo-anchored /maps/search/<query>/@lat,lng,zoom URL.
+        const c = COORDS[city];
+        if (c) { obj.lat = c.lat; obj.lng = c.lng; obj.zoom = c.zoom || 13; }
+        return obj;
+      });
       if (!filenameInput.value.trim()) {
         const slug = (cityNames.length === 1 ? cityNames[0] : region).toLowerCase()
           .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');

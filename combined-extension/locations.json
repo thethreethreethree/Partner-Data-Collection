@@ -1,59 +1,63 @@
 {
   "Philippines": {
     "Luzon (North & Central)": ["Tagaytay", "Baguio", "Sagada", "Banaue", "Batad", "Vigan", "Pagudpud", "Laoag", "Baler", "Subic", "Anawangin Cove", "Nagsasa Cove", "Corregidor", "San Juan La Union"],
-    "Metro Manila": ["Manila", "Makati", "Bonifacio Global City Taguig", "Taguig", "Pasig", "Mandaluyong", "Quezon City", "San Juan Metro Manila", "Pasay", "Parañaque", "Las Piñas", "Marikina", "Muntinlupa Alabang"],
+    "Metro Manila": ["Manila", "Intramuros", "Binondo", "Ermita Manila", "Malate", "Makati", "Poblacion Makati", "Salcedo Village", "Legazpi Village", "Bonifacio Global City Taguig", "Taguig", "McKinley Hill", "Pasig", "Ortigas Pasig", "Kapitolyo Pasig", "Mandaluyong", "Greenhills San Juan", "San Juan Metro Manila", "Quezon City", "Cubao", "Tomas Morato", "Maginhawa", "Diliman", "Pasay", "Parañaque", "BF Homes Parañaque", "Las Piñas", "Marikina", "Muntinlupa Alabang"],
     "Luzon (South / Bicol)": ["Legazpi", "Donsol", "Caramoan", "Calaguas", "Catanduanes", "Puraran"],
     "Batanes": ["Basco", "Sabtang", "Itbayat"],
     "Palawan": ["El Nido", "Coron", "Port Barton", "San Vicente", "Puerto Princesa", "Sabang", "Balabac"],
     "Mindoro & nearby": ["Puerto Galera", "Sabang Beach", "White Beach", "Apo Reef"],
-    "Boracay & Western Visayas": ["Boracay", "Iloilo", "Gigantes Islands", "Bacolod", "Sipalay"],
-    "Cebu": ["Cebu City", "Mactan", "Oslob", "Moalboal", "Kawasan Falls", "Badian", "Bantayan Island", "Malapascua Island"],
-    "Bohol": ["Tagbilaran", "Panglao", "Chocolate Hills", "Loboc", "Anda"],
+    "Boracay & Western Visayas": ["Boracay", "Iloilo", "Iloilo City", "Gigantes Islands", "Bacolod", "Sipalay"],
+    "Cebu": ["Cebu City", "Cebu IT Park", "Capitol Site Cebu", "Lahug Cebu", "Mactan", "Lapu-Lapu City", "Mandaue", "Talisay City Cebu", "Oslob", "Moalboal", "Kawasan Falls", "Badian", "Bantayan Island", "Malapascua Island"],
+    "Bohol": ["Tagbilaran", "Panglao", "Alona Beach Panglao", "Chocolate Hills", "Loboc", "Anda"],
     "Negros & Siquijor": ["Dumaguete", "Apo Island", "Siquijor"],
     "Camiguin": ["Mambajao", "White Island", "Catarman"],
-    "Davao Region": ["Davao City", "Mount Apo", "Samal Island"],
+    "Davao Region": ["Davao City", "Lanang Davao", "Poblacion Davao", "Toril Davao", "Buhangin Davao", "Mount Apo", "Samal Island"],
     "Siargao & Surigao": ["Siargao", "General Luna", "Cloud 9", "Pacifico", "Burgos", "Sugba Lagoon", "Bucas Grande", "Enchanted River", "Britania Islands"],
     "Romblon": ["Tablas", "Romblon", "Carabao Island"]
   },
   "Thailand": {
-    "Bangkok": ["Bangkok"],
+    "Bangkok": ["Sukhumvit Bangkok", "Asok Bangkok", "Phrom Phong", "Thonglor", "Ekkamai", "Silom", "Sathorn", "Chong Nonsi", "Khao San Road", "Banglamphu", "Chinatown Bangkok", "Yaowarat", "Ari", "Phaya Thai", "Ratchathewi", "Chatuchak Bangkok", "Old City Bangkok", "Rattanakosin"],
     "Central / near Bangkok": ["Ayutthaya", "Amphawa", "Damnoen Saduak", "Kanchanaburi"],
-    "Northern Thailand": ["Chiang Mai", "Chiang Rai", "Pai", "Mae Hong Son", "Sukhothai", "Lampang", "Nan", "Chiang Khong"],
+    "Northern Thailand": ["Old City Chiang Mai", "Nimmanhaemin Chiang Mai", "Santitham Chiang Mai", "Chiang Mai", "Chiang Rai", "Pai", "Mae Hong Son", "Sukhothai", "Lampang", "Nan", "Chiang Khong"],
     "Northeast (Isaan)": ["Khao Yai", "Phanom Rung", "Buriram", "Chiang Khan", "Loei", "Nong Khai"],
-    "Eastern Gulf coast": ["Pattaya", "Ko Samet", "Ko Chang", "Ko Kood"],
+    "Eastern Gulf coast": ["Pattaya", "Jomtien Pattaya", "Naklua Pattaya", "Ko Samet", "Ko Chang", "Ko Kood"],
     "Western / royal coast": ["Hua Hin", "Cha-am", "Khao Sok"],
-    "Southern Gulf islands": ["Ko Samui", "Ko Pha Ngan", "Ko Tao"],
-    "Andaman coast": ["Phuket", "Patong", "Kata", "Karon", "Phuket Town", "Rawai", "Krabi", "Ao Nang", "Railay", "Ko Phi Phi", "Ko Lanta", "Khao Lak", "Phang Nga Bay", "Koh Yao Noi", "Koh Yao Yai", "Similan Islands", "Ko Lipe"]
+    "Southern Gulf islands": ["Chaweng Ko Samui", "Lamai Ko Samui", "Bophut Ko Samui", "Ko Samui", "Haad Rin Ko Phangan", "Ko Phangan", "Ko Tao"],
+    "Andaman coast": ["Patong", "Kata", "Karon", "Phuket Town", "Rawai", "Kamala Phuket", "Bang Tao Phuket", "Phuket", "Krabi", "Ao Nang", "Railay", "Ko Phi Phi", "Ko Lanta", "Khao Lak", "Phang Nga Bay", "Koh Yao Noi", "Koh Yao Yai", "Similan Islands", "Ko Lipe"]
   },
   "Vietnam": {
-    "North": ["Hanoi", "Ha Long Bay", "Sapa", "Ninh Binh", "Ha Giang", "Cat Ba"],
-    "Central": ["Hue", "Hoi An", "Da Nang", "Phong Nha"],
-    "South": ["Ho Chi Minh City", "Mekong Delta", "Phu Quoc", "Da Lat", "Mui Ne", "Nha Trang"]
+    "North": ["Old Quarter Hanoi", "Hoan Kiem Hanoi", "Tay Ho Hanoi", "Ba Dinh Hanoi", "Hai Ba Trung Hanoi", "Cau Giay Hanoi", "Hanoi", "Ha Long Bay", "Sapa", "Ninh Binh", "Ha Giang", "Cat Ba"],
+    "Central": ["Old Citadel Hue", "Backpacker Hue", "Hue", "Ancient Town Hoi An", "An Bang Beach Hoi An", "Cam Thanh Hoi An", "Hoi An", "My Khe Beach Da Nang", "An Thuong Da Nang", "Han Riverside Da Nang", "Son Tra Da Nang", "Da Nang", "Phong Nha"],
+    "South": ["District 1 Ho Chi Minh", "District 3 Ho Chi Minh", "District 5 Ho Chi Minh", "Thao Dien District 2 Ho Chi Minh", "District 7 Ho Chi Minh", "Phu My Hung Ho Chi Minh", "Ho Chi Minh City", "Mekong Delta", "Phu Quoc", "Da Lat", "Mui Ne", "Nha Trang"]
   },
   "Cambodia": {
-    "Siem Reap": ["Siem Reap", "Angkor Wat"],
-    "Phnom Penh": ["Phnom Penh"],
+    "Siem Reap": ["Siem Reap", "Angkor Wat", "Pub Street Siem Reap", "Wat Bo Siem Reap"],
+    "Phnom Penh": ["Phnom Penh", "BKK1 Phnom Penh", "Riverside Phnom Penh", "Toul Tom Poung Phnom Penh"],
     "Coast": ["Sihanoukville", "Koh Rong", "Koh Rong Samloem", "Kampot", "Kep"],
     "Northwest": ["Battambang"]
   },
   "Laos": {
     "North": ["Luang Prabang", "Vang Vieng"],
-    "Central": ["Vientiane"],
+    "Central": ["Vientiane", "Chanthabouly Vientiane", "Sisattanak Vientiane", "Sikhottabong Vientiane"],
     "South": ["Pakse", "Bolaven Plateau", "4000 Islands", "Si Phan Don"]
   },
   "Myanmar": {
-    "Main Destinations": ["Yangon", "Bagan", "Mandalay", "Inle Lake", "Ngapali Beach"]
+    "Yangon": ["Downtown Yangon", "Bahan Yangon", "Kamayut Yangon", "Sanchaung Yangon", "Yangon"],
+    "Mandalay": ["Chanmyathazi Mandalay", "Aungmyethazan Mandalay", "Mandalay"],
+    "Other Destinations": ["Bagan", "Old Bagan", "New Bagan", "Nyaung-U", "Inle Lake", "Nyaungshwe", "Ngapali Beach"]
   },
   "Malaysia": {
-    "Peninsular": ["Kuala Lumpur", "George Town", "Penang", "Batu Ferringhi", "Malacca", "Langkawi", "Pantai Cenang", "Kuah", "Cameron Highlands", "Taman Negara", "Perhentian Besar", "Perhentian Kecil", "Tioman Island"],
-    "Borneo": ["Kota Kinabalu", "Kuching", "Sipadan", "Semporna", "Sandakan"]
+    "Kuala Lumpur": ["Bukit Bintang", "KLCC Kuala Lumpur", "Chinatown Kuala Lumpur", "Bangsar Kuala Lumpur", "Mont Kiara", "TTDI Kuala Lumpur", "Cheras Kuala Lumpur", "Subang Jaya", "Petaling Jaya", "Damansara Kuala Lumpur"],
+    "Peninsular": ["George Town Penang", "Batu Ferringhi Penang", "Penang", "Malacca", "Pantai Cenang Langkawi", "Kuah Langkawi", "Langkawi", "Cameron Highlands", "Taman Negara", "Perhentian Besar", "Perhentian Kecil", "Tioman Island"],
+    "Borneo": ["Kota Kinabalu", "Tanjung Aru Kota Kinabalu", "Likas Kota Kinabalu", "Kuching", "Sipadan", "Semporna", "Sandakan"]
   },
   "Singapore": {
-    "Singapore": ["Singapore", "Marina Bay", "Sentosa", "Orchard Road", "Chinatown Singapore"]
+    "Singapore": ["Marina Bay Singapore", "Orchard Road Singapore", "Sentosa Singapore", "Chinatown Singapore", "Little India Singapore", "Bugis Singapore", "Tiong Bahru Singapore", "Holland Village Singapore", "Clarke Quay Singapore", "Boat Quay Singapore"]
   },
   "Indonesia": {
-    "Bali": ["Ubud", "Kuta Bali", "Seminyak", "Uluwatu", "Canggu", "Nusa Penida", "Nusa Lembongan", "Sanur", "Amed"],
-    "Java": ["Jakarta", "Yogyakarta", "Borobudur", "Prambanan", "Bandung", "Mount Bromo", "Malang"],
+    "Bali": ["Ubud", "Kuta Bali", "Seminyak", "Uluwatu", "Canggu", "Berawa Canggu", "Pererenan Canggu", "Nusa Penida", "Nusa Lembongan", "Sanur", "Amed", "Jimbaran Bali"],
+    "Jakarta": ["Menteng Jakarta", "Kemang Jakarta", "Senopati Jakarta", "Kuningan Jakarta", "SCBD Jakarta", "Sudirman Jakarta", "Kelapa Gading Jakarta", "Pantai Indah Kapuk Jakarta", "Pondok Indah Jakarta", "Jakarta"],
+    "Java": ["Malioboro Yogyakarta", "Prawirotaman Yogyakarta", "Tugu Yogyakarta", "Kraton Yogyakarta", "Yogyakarta", "Borobudur", "Prambanan", "Dago Bandung", "Cihampelas Bandung", "Braga Bandung", "Pasteur Bandung", "Bandung", "Mount Bromo", "Malang"],
     "Nusa Tenggara": ["Gili Trawangan", "Gili Air", "Gili Meno", "Lombok", "Kuta Lombok", "Senggigi", "Labuan Bajo", "Komodo", "Flores"],
     "Sumatra": ["Lake Toba", "Bukit Lawang", "Mentawai Islands"],
     "Sulawesi": ["Tana Toraja", "Bunaken"],
@@ -66,7 +70,8 @@
     "Main Destinations": ["Dili", "Atauro Island"]
   },
   "Sri Lanka": {
-    "South Coast": ["Mirissa", "Weligama", "Unawatuna", "Galle", "Tangalle"],
+    "Colombo": ["Colombo", "Fort Colombo", "Cinnamon Gardens Colombo", "Mount Lavinia"],
+    "South Coast": ["Mirissa", "Weligama", "Unawatuna", "Galle", "Galle Fort", "Tangalle"],
     "Hill Country": ["Ella", "Kandy", "Nuwara Eliya"],
     "Cultural Triangle": ["Sigiriya", "Dambulla", "Anuradhapura"]
   }
