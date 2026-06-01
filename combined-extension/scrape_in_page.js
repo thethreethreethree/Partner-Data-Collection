@@ -5,92 +5,33 @@
 // off the last evaluated expression. Returns an array of card objects.
 
 (async () => {
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  console.log('[DCS] scrape_in_page.js starting');
-
-  // 1) Wait up to 15s for the results panel to render.
-  let feed = null;
-  for (let i = 0; i < 30; i++) {
-    feed = document.querySelector('[role="feed"]') ||
-           document.querySelector('div[role="feed"]') ||
-           document.querySelector('a[href^="https://www.google.com/maps/place"]')
-             ?.closest('div[style*="overflow"], div[tabindex]');
-    if (feed) break;
-    await sleep(500);
-  }
-  console.log('[DCS] feed found:', !!feed, feed);
-
+  let reachedEnd = false;
+  const feed = document.querySelector('[role="feed"]');
   if (feed) {
-    // Collect every plausibly-scrollable container so we scroll all of them
-    // each iteration (Maps' DOM has changed over time and parents/children
-    // may be the actual scroll container).
-    const scrollTargets = new Set([feed]);
-    let p = feed.parentElement;
-    let hops = 0;
-    while (p && hops < 6) {
-      const cs = getComputedStyle(p);
-      if (/auto|scroll/.test(cs.overflowY || '')) scrollTargets.add(p);
-      p = p.parentElement; hops++;
-    }
-    console.log('[DCS] scroll targets:', scrollTargets.size);
-
-    // PRIMARY exit condition: "You've reached the end of the list." text appears.
-    // Stable-iterations is only a far-fallback safety net (~75 seconds of true
-    // silence) so we don't give up early on slow / throttled load-more responses.
-    let lastCount = 0;
+    // Try to scroll until "You've reached the end of the list" appears.
+    // Capped at 100 iterations (~2.5 min) per attempt — if we haven't hit
+    // the end by then, the caller (background.js) will reload + retry.
+    let cardCount = 0;
     let stable = 0;
-    const HARD_CAP = 500;
-    for (let i = 0; i < HARD_CAP; i++) {
-      // Aggressive multi-trigger scroll: scrollTop, scrollIntoView, scroll event,
-      // wheel event. The 'scroll' Event wake-up is the key one because Google's
-      // load-more uses IntersectionObservers that listen for scroll events.
-      for (const t of scrollTargets) {
-        t.scrollTop = t.scrollHeight;
-        try { t.dispatchEvent(new Event('scroll', { bubbles: true })); } catch {}
-        try {
-          t.dispatchEvent(new WheelEvent('wheel', {
-            deltaY: 3000, bubbles: true, cancelable: true,
-          }));
-        } catch {}
-      }
-      const cards = feed.querySelectorAll('a[href^="https://www.google.com/maps/place"]');
-      const last = cards[cards.length - 1];
-      if (last) {
-        try { last.scrollIntoView({ block: 'end', behavior: 'instant' }); } catch {}
-      }
-      // Yield two animation frames so IntersectionObservers run, then breathe.
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await sleep(2500);
-
-      const count = feed.querySelectorAll('a[href^="https://www.google.com/maps/place"]').length;
+    for (let i = 0; i < 100; i++) {
+      feed.scrollTop = feed.scrollHeight;
+      await new Promise((r) => setTimeout(r, 1500));
+      const newCount = feed.querySelectorAll('a[href^="https://www.google.com/maps/place"]').length;
       const text = feed.innerText || '';
-      // PRIMARY: stop when Maps explicitly says we've reached the end.
-      const end =
-        /you('|’)?ve reached the end of the list/i.test(text) ||
-        /you('|’)?ve reached the end/i.test(text) ||
-        /end of (the )?list/i.test(text) ||
-        /no more results/i.test(text);
-
-      if (count === lastCount) stable++; else stable = 0;
-      console.log(`[DCS] iter ${i}: cards=${count}, stable=${stable}, end=${end}`);
-      lastCount = count;
-
-      if (end) {
-        console.log('[DCS] ✓ "You\'ve reached the end of the list" detected — stopping cleanly');
-        break;
-      }
-      // Safety fallback only — 30 stable iterations = 75 seconds of no growth.
-      // This is the "Google won't load more no matter what" escape hatch.
-      if (stable >= 30) {
-        console.log('[DCS] ⚠ 30 stable iterations (~75s no growth) — fallback stop. End-of-list never appeared. Google may have rate-limited or the query truly has no more results.');
-        break;
-      }
+      const end = /you('|’)?ve reached the end of the list/i.test(text) ||
+                  /you('|’)?ve reached the end/i.test(text);
+      if (end) { reachedEnd = true; cardCount = newCount; break; }
+      // Track stalls so the per-attempt loop gives up after a while of
+      // true silence rather than spinning 100 iters on nothing.
+      if (newCount === cardCount) stable++; else stable = 0;
+      cardCount = newCount;
+      if (stable >= 15) break; // ~22s of zero growth → bail and let caller retry
     }
-    console.log('[DCS] final card count:', lastCount);
+    console.log(`[DCS] scroll done: ${cardCount} cards, reachedEnd=${reachedEnd}`);
   }
 
   const links = Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"]'));
-  return links.map((link) => {
+  const cards = links.map((link) => {
     const container = link.closest('[jsaction*="mouseover:pane"]');
     const titleText = container ? (container.querySelector('.fontHeadlineSmall')?.textContent || '') : '';
     let rating = '', reviewCount = '', phone = '', industry = '', address = '', companyUrl = '', instagram = '', facebook = '';
@@ -164,4 +105,5 @@
     return { title: titleText, rating, reviewCount, phone, whatsapp, instagram, facebook,
              industry, address, companyUrl, image, latitude, longitude, href: link.href };
   });
+  return { cards, reachedEnd };
 })();

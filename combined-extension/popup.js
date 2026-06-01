@@ -167,7 +167,10 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!results || !results[0] || !results[0].result) {
             actionButton.disabled = false; return;
           }
-          const all = results[0].result || [];
+          // scrape_in_page.js now returns { cards, reachedEnd }; tolerate
+          // the legacy array shape too just in case.
+          const raw = results[0].result;
+          const all = Array.isArray(raw) ? raw : (raw && raw.cards) || [];
           // Tag every card with the search query this scrape came from
           // (so single-mode and batch-mode CSVs share the same shape).
           let sourceQuery = '';

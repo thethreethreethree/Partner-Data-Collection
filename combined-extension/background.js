@@ -215,14 +215,11 @@ const NAV_TIMEOUT = 20000;
 const SCRAPE_TIMEOUT = 15000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function openTab(url, opts = {}) {
-  // Background-throttled tabs throttle setTimeout, IntersectionObserver and
-  // rAF, so Maps' lazy-load handlers often don't fire. For Maps search pages
-  // we explicitly open foreground (active=true). The popup will lose focus
-  // briefly but the scroll actually completes.
-  const active = opts.active !== undefined
-    ? opts.active
-    : /\/maps\/search\//.test(url); // foreground for Maps; background for everything else
+async function openTab(url) {
+  // Maps URLs open foreground because Chrome throttles IntersectionObservers
+  // (which Maps' lazy-load uses) in background tabs. Non-Maps URLs stay
+  // background so they don't steal focus during enrichment.
+  const active = /\/maps\/search\//.test(url);
   const tab = await chrome.tabs.create({ url, active });
   await new Promise((resolve) => {
     const start = Date.now();
@@ -501,29 +498,62 @@ const batchEvent = async (payload) => {
 async function scrapeQueryTab(query) {
   const url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
   const tab = await openTab(url);
-  // Maps needs a beat to render the search panel before we scroll/extract.
-  // The scroll script also self-waits up to 15s for the feed to appear, but
-  // giving it a head start here cuts down on retries when Maps is slow.
-  await sleep(4500);
+
   let cards = [];
   let captcha = false;
+  const MAX_ATTEMPTS = 3;
+
   try {
-    // Quick captcha check before injecting the heavy scrape script.
-    const [probe] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => /\/sorry\//i.test(location.pathname) ||
-                  /unusual traffic|systems have detected unusual|verify (you are|that you're) not a robot/i.test(
-                    (document.body && document.body.innerText) || ''),
-    }).catch(() => [{ result: false }]);
-    if (probe && probe.result) {
-      captcha = true;
-      try { await chrome.tabs.update(tab.id, { active: true }); } catch {}
-    } else {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      if (attempt > 1) {
+        log(`   ↻ reload + retry (attempt ${attempt}/${MAX_ATTEMPTS}) for "${query}"`);
+        try {
+          await chrome.tabs.update(tab.id, { url, active: true });
+          // Wait for the navigation to finish.
+          await new Promise((resolve) => {
+            const start = Date.now();
+            const listener = (tabId, info) => {
+              if (tabId === tab.id && info.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener); resolve();
+              }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+            const poll = setInterval(() => {
+              if (Date.now() - start > NAV_TIMEOUT) {
+                clearInterval(poll); chrome.tabs.onUpdated.removeListener(listener); resolve();
+              }
+            }, 500);
+          });
+        } catch {}
+      }
+
+      // Maps needs a beat to render the search panel before we scroll/extract.
+      await sleep(3000);
+
+      const [probe] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => /\/sorry\//i.test(location.pathname) ||
+                    /unusual traffic|systems have detected unusual|verify (you are|that you're) not a robot/i.test(
+                      (document.body && document.body.innerText) || ''),
+      }).catch(() => [{ result: false }]);
+      if (probe && probe.result) {
+        captcha = true;
+        try { await chrome.tabs.update(tab.id, { active: true }); } catch {}
+        break;
+      }
+
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['scrape_in_page.js'],
       });
-      cards = (results && results[0] && results[0].result) || [];
+      const result = (results && results[0] && results[0].result) || { cards: [], reachedEnd: false };
+      cards = result.cards || [];
+      const reachedEnd = !!result.reachedEnd;
+
+      log(`   attempt ${attempt}: ${cards.length} cards, reachedEnd=${reachedEnd}`);
+      if (reachedEnd) break;
+      // else: loop again — the chrome.tabs.update at the top of the next
+      // iteration reloads the same URL and we try again.
     }
   } catch (e) {
     log(`scrape failed for "${query}": ${e.message}`);
@@ -569,21 +599,23 @@ async function runBatch(cities, categories) {
       batchState: {
         phase: 'running', cities: cityStatus, categories,
         total: totalQueries, index: queryIdx, runningTotal: all.length,
-        currentCity: cityObj.full, currentCategory: '', currentQuery: '', ts: Date.now(),
+        currentCity: cityObj.city, currentCategory: '', currentQuery: '', ts: Date.now(),
       },
     });
-    log(`[city ${ci+1}/${cities.length}] ${cityObj.full}`);
+    log(`[city ${ci+1}/${cities.length}] ${cityObj.city}`);
 
     for (let cati = 0; cati < categories.length; cati++) {
       if (ABORT) { log('Batch stopped.'); break outer; }
       await awaitResume();
       if (ABORT) { log('Batch stopped.'); break outer; }
       const cat = categories[cati];
-      const q = `${cat} in ${cityObj.full}`;
+      // Simpler search format: "<category> in <city>" only — region/country
+      // are dropped to match how a normal user types into Maps.
+      const q = `${cat} in ${cityObj.city}`;
       queryIdx++;
       const evtBase = {
         cityIndex: ci, total: totalQueries, index: queryIdx,
-        currentCity: cityObj.full, currentCategory: cat, query: q,
+        currentCity: cityObj.city, currentCategory: cat, query: q,
         cities: cityStatus, runningTotal: all.length,
       };
       batchEvent({ phase: 'scraping', ...evtBase });

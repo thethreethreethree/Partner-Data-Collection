@@ -1,6 +1,7 @@
 {
   "Philippines": {
-    "Luzon (North & Central)": ["Manila", "Tagaytay", "Baguio", "Sagada", "Banaue", "Batad", "Vigan", "Pagudpud", "Laoag", "Baler", "Subic", "Anawangin Cove", "Nagsasa Cove", "Corregidor", "San Juan La Union"],
+    "Luzon (North & Central)": ["Tagaytay", "Baguio", "Sagada", "Banaue", "Batad", "Vigan", "Pagudpud", "Laoag", "Baler", "Subic", "Anawangin Cove", "Nagsasa Cove", "Corregidor", "San Juan La Union"],
+    "Metro Manila": ["Manila", "Makati", "Bonifacio Global City Taguig", "Taguig", "Pasig", "Mandaluyong", "Quezon City", "San Juan Metro Manila", "Pasay", "Parañaque", "Las Piñas", "Marikina", "Muntinlupa Alabang"],
     "Luzon (South / Bicol)": ["Legazpi", "Donsol", "Caramoan", "Calaguas", "Catanduanes", "Puraran"],
     "Batanes": ["Basco", "Sabtang", "Itbayat"],
     "Palawan": ["El Nido", "Coron", "Port Barton", "San Vicente", "Puerto Princesa", "Sabang", "Balabac"],
