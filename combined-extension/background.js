@@ -215,8 +215,15 @@ const NAV_TIMEOUT = 20000;
 const SCRAPE_TIMEOUT = 15000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function openTab(url) {
-  const tab = await chrome.tabs.create({ url, active: false });
+async function openTab(url, opts = {}) {
+  // Background-throttled tabs throttle setTimeout, IntersectionObserver and
+  // rAF, so Maps' lazy-load handlers often don't fire. For Maps search pages
+  // we explicitly open foreground (active=true). The popup will lose focus
+  // briefly but the scroll actually completes.
+  const active = opts.active !== undefined
+    ? opts.active
+    : /\/maps\/search\//.test(url); // foreground for Maps; background for everything else
+  const tab = await chrome.tabs.create({ url, active });
   await new Promise((resolve) => {
     const start = Date.now();
     const listener = (tabId, info) => {
@@ -495,7 +502,9 @@ async function scrapeQueryTab(query) {
   const url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
   const tab = await openTab(url);
   // Maps needs a beat to render the search panel before we scroll/extract.
-  await sleep(3000);
+  // The scroll script also self-waits up to 15s for the feed to appear, but
+  // giving it a head start here cuts down on retries when Maps is slow.
+  await sleep(4500);
   let cards = [];
   let captcha = false;
   try {
