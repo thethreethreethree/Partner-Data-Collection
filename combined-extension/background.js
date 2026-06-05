@@ -616,11 +616,19 @@ async function runBatch(cities, categories) {
       await awaitResume();
       if (ABORT) { log('Batch stopped.'); break outer; }
       const cat = categories[cati];
-      // Full-specificity search format: "<category> in <city>, <region>, <country>".
-      // Including region + country tells Maps exactly which location we mean
-      // (no ambiguous "San Juan", "Cebu City variant", etc.) and seems to give
-      // better lazy-load behavior on borderline-size queries.
-      const q = `${cat} in ${cityObj.full}`;
+      // Maximum-specificity search format. When we have lat/lng for the city,
+      // include them IN the search text — Google Maps recognizes coordinate
+      // pairs and pins the search exactly there, instead of doing fuzzy text
+      // geocoding (which is what makes obscure places like "Balabac" drift to
+      // the wrong area). The "@lat,lng,zoom" URL anchor (added below) sets the
+      // viewport; the coord-in-text sets the search center.
+      let q;
+      if (cityObj.lat != null && cityObj.lng != null) {
+        q = `${cat} near ${cityObj.city} ${cityObj.lat},${cityObj.lng}`;
+      } else {
+        // Fallback when we don't have coords: full address text search.
+        q = `${cat} in ${cityObj.full}`;
+      }
       queryIdx++;
       const evtBase = {
         cityIndex: ci, total: totalQueries, index: queryIdx,
