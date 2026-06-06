@@ -551,42 +551,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Export per City: split current rows by City column, download N CSVs ---
     exportPerCityBtn.addEventListener('click', async () => {
-      const { headers, rows, batchState } = await chrome.storage.local.get(['headers','rows','batchState']);
+      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
       if (!rows || !rows.length) { alert('No rows to export.'); return; }
       const iCity = headers.indexOf('City');
       if (iCity < 0) { alert('No City column in this dataset.'); return; }
-
-      // Filter precedence (most-specific first):
-      // 1. Explicit pill clicks override everything else.
-      // 2. Else, the most recent batch's city selection (what the user
-      //    actually ticked in the checkboxes before clicking Start Batch).
-      // 3. Else, every city found in the dataset (legacy "export all").
-      // This matches the user's mental model: "I only chose El Nido for
-      // the batch, so Export per City should only give me El Nido" — no
-      // hidden pill-clicking required.
-      let allowedCities = null;
-      let scopeSource = 'all';
-      if (pillSelection.size > 0) {
-        allowedCities = new Set([...pillSelection].map((s) => s.trim()));
-        scopeSource = 'pills';
-      } else if (batchState && Array.isArray(batchState.cities) && batchState.cities.length > 0) {
-        allowedCities = new Set(batchState.cities.map((c) => (c.city || '').trim()).filter(Boolean));
-        scopeSource = 'batch';
-      }
-
       const byCity = new Map();
       for (const r of rows) {
         const c = (r[iCity] || '_unassigned').trim() || '_unassigned';
-        if (allowedCities && !allowedCities.has(c)) continue;
         if (!byCity.has(c)) byCity.set(c, []);
         byCity.get(c).push(r);
-      }
-      if (byCity.size === 0) {
-        const hint = scopeSource === 'batch'
-          ? `Batch was set to ${[...allowedCities].join(', ')} but no rows have those City values — re-run the batch with the fixed code.`
-          : 'No rows match the selected cities. Click pills to pick which cities to export.';
-        alert(hint);
-        return;
       }
       const baseName = (filenameInput.value.trim() || 'batch')
         .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
@@ -600,14 +573,11 @@ document.addEventListener('DOMContentLoaded', function () {
         a.download = `${baseName}_${slug}.csv`;
         a.style.display = 'none';
         document.body.appendChild(a);
+        // Tiny stagger so Chrome doesn't drop downloads from the same click.
         await new Promise((r) => setTimeout(r, 250 * i++));
         a.click(); a.remove();
       }
-      const scopeLabel =
-        scopeSource === 'pills' ? `selected pills: ${[...pillSelection].join(', ')}` :
-        scopeSource === 'batch' ? `batch cities: ${[...allowedCities].join(', ')}` :
-        'all cities in dataset';
-      enrichLog.textContent += `Exported ${byCity.size} per-city CSV${byCity.size === 1 ? '' : 's'} (${scopeLabel}).\n`;
+      enrichLog.textContent += `Exported ${byCity.size} per-city CSV${byCity.size === 1 ? '' : 's'}.\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
     });
 
@@ -615,39 +585,30 @@ document.addEventListener('DOMContentLoaded', function () {
     //     If nothing is selected, exports ALL cities as one combined file
     //     (effectively a labeled-download alias of the master CSV).
     combineCitiesBtn.addEventListener('click', async () => {
-      const { headers, rows, batchState } = await chrome.storage.local.get(['headers','rows','batchState']);
+      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
       if (!rows || !rows.length) { alert('No rows to export.'); return; }
       const iCity = headers.indexOf('City');
       if (iCity < 0) { alert('No City column in this dataset.'); return; }
-
-      // Same precedence as Export per City: pills > batch selection > all.
-      let allowedCities = null;
-      if (pillSelection.size > 0) {
-        allowedCities = new Set([...pillSelection].map((s) => s.trim()));
-      } else if (batchState && Array.isArray(batchState.cities) && batchState.cities.length > 0) {
-        allowedCities = new Set(batchState.cities.map((c) => (c.city || '').trim()).filter(Boolean));
-      }
-      const wantAll = !allowedCities;
+      const wantAll = pillSelection.size === 0;
       const filtered = wantAll
         ? rows
-        : rows.filter((r) => allowedCities.has((r[iCity] || '').trim()));
+        : rows.filter((r) => pillSelection.has((r[iCity] || '').trim()));
       if (filtered.length === 0) {
-        alert(`No rows match. Looked for cities: ${[...allowedCities].join(', ')}.`);
+        alert('None of the rows match the selected cities. Did you click any pills?');
         return;
       }
       const baseName = (filenameInput.value.trim() || 'batch')
         .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
-      // Build a name reflecting whichever cities actually got included.
-      const includedCities = wantAll ? [] : [...allowedCities];
+      // Build a name reflecting the selection: combined_<n>cities or list-of-slugs (capped).
       let label;
       if (wantAll) {
         label = 'all_cities';
-      } else if (includedCities.length <= 3) {
-        label = includedCities.map((c) =>
+      } else if (pillSelection.size <= 3) {
+        label = [...pillSelection].map((c) =>
           c.replace(/[^a-z0-9]+/gi, '_').toLowerCase()
         ).join('-');
       } else {
-        label = `combined_${includedCities.length}cities`;
+        label = `combined_${pillSelection.size}cities`;
       }
       const csv = toCSV([headers, ...filtered]);
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -656,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function () {
       a.download = `${baseName}_${label}.csv`;
       a.style.display = 'none';
       document.body.appendChild(a); a.click(); a.remove();
-      const cityList = wantAll ? 'all cities' : includedCities.join(', ');
+      const cityList = wantAll ? 'all cities' : [...pillSelection].join(', ');
       enrichLog.textContent += `Combined export → ${a.download} (${filtered.length} rows: ${cityList})\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
     });

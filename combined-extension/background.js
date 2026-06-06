@@ -496,14 +496,14 @@ const batchEvent = async (payload) => {
 };
 
 async function scrapeQueryTab(query, anchor) {
-  // anchor is now IGNORED. The combination of a verbose text query
-  // ("hostels in El Nido, Palawan, Philippines") + a @lat,lng,zoom URL anchor
-  // breaks Maps: the feed panel doesn't render and every query returns 0
-  // results. The full text query is already location-specific enough — the
-  // city/region/country triple disambiguates without needing the URL anchor.
-  // Coords stay in coords.json for any future use, just no longer welded
-  // into the URL.
-  const url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
+  // anchor (optional): { lat, lng, zoom } from coords.json. When present,
+  // append /@lat,lng,zoom to constrain Maps' search to that exact spot —
+  // much more specific than text alone, and avoids cross-region collisions.
+  let url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
+  if (anchor && typeof anchor.lat === 'number' && typeof anchor.lng === 'number') {
+    const z = anchor.zoom || 13;
+    url += `/@${anchor.lat},${anchor.lng},${z}z`;
+  }
   const tab = await openTab(url);
 
   let cards = [];
@@ -616,14 +616,10 @@ async function runBatch(cities, categories) {
       await awaitResume();
       if (ABORT) { log('Batch stopped.'); break outer; }
       const cat = categories[cati];
-      // Use "in <city>, <region>, <country>" — Maps treats this as a tight
-      // location-anchored search. DO NOT use "near <city> <lat>,<lng>": the
-      // word "near" triggers a wide-RADIUS search that pulls in neighboring
-      // cities' businesses (which then get mis-tagged with the wrong city
-      // by the dedupe pass below). Coordinates still ride along in the URL
-      // viewport anchor (@lat,lng,zoom — set by scrapeQueryTab) so Maps
-      // knows EXACTLY which "Makati" or "San Juan" we mean, without the
-      // radius-broadening side effect of putting coords in the search text.
+      // Full-specificity search format: "<category> in <city>, <region>, <country>".
+      // Including region + country tells Maps exactly which location we mean
+      // (no ambiguous "San Juan", "Cebu City variant", etc.) and seems to give
+      // better lazy-load behavior on borderline-size queries.
       const q = `${cat} in ${cityObj.full}`;
       queryIdx++;
       const evtBase = {
@@ -672,49 +668,18 @@ async function runBatch(cities, categories) {
     });
   }
 
-  // Dedupe across all queries by Google place ID, then re-tag each kept row
-  // with the NEAREST selected city (by lat/lng distance) — fixes the previous
-  // bug where the FIRST city in iteration order claimed every shared place,
-  // even if the place was geographically closer to a different city. Without
-  // this, "near"-style cross-city overlaps mis-attribute every shared row.
-  const seen = new Map(); // placeKey → row (so we can pick the best)
+  // Dedupe across all queries by Google place ID, falling back to title+coords.
+  const seen = new Set();
+  const deduped = [];
   for (const it of all) {
     const m = (it.href || '').match(/!1s([0-9a-fx:]+)/i);
     const key = (m ? m[1].toLowerCase() : '') ||
                 ((it.title || '') + '|' + (it.latitude || '') + ',' + (it.longitude || ''));
-    if (!seen.has(key)) seen.set(key, it);
-    // If we see the same place again, keep the first row but remember the
-    // alternate city candidates so we can re-tag below.
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(it);
   }
-  const deduped = [...seen.values()];
   const dupes = all.length - deduped.length;
-
-  // Re-tag each row with the closest selected city by haversine distance.
-  // This fixes the El-Nido-CSV-contains-Port-Barton bug at the data level:
-  // a place's City reflects where it actually IS, not whichever city query
-  // happened to surface it first.
-  const haversineKm = (lat1, lng1, lat2, lng2) => {
-    const toRad = (d) => d * Math.PI / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat/2)**2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLng/2)**2;
-    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
-  };
-  const citiesWithCoords = cities.filter((c) => c.lat != null && c.lng != null);
-  if (citiesWithCoords.length > 0) {
-    for (const r of deduped) {
-      const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
-      if (!isFinite(lat) || !isFinite(lng)) continue;
-      let best = null, bestD = Infinity;
-      for (const c of citiesWithCoords) {
-        const d = haversineKm(lat, lng, c.lat, c.lng);
-        if (d < bestD) { bestD = d; best = c; }
-      }
-      if (best) r.city = best.city;
-    }
-  }
 
   // Convert object rows → 2D rows in BATCH_HEADERS order, save to storage.
   const tableRows = deduped.map((o) => BATCH_KEYS.map((k) => (o[k] != null ? String(o[k]) : '')));
