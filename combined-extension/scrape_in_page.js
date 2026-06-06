@@ -47,18 +47,32 @@
         } else { rating = '0'; reviewCount = '0'; }
       }
 
-      const text = container.textContent || '';
-      const addrMatch = text.match(/\d+ [\w\s]+(?:#\s*\d+|Suite\s*\d+|Apt\s*\d+)?/);
-      if (addrMatch) {
-        address = addrMatch[0];
-        const before = text.substring(0, text.indexOf(address)).trim();
-        const idx = before.lastIndexOf(rating + reviewCount);
-        if (idx !== -1) {
-          const raw = before.substring(idx + (rating + reviewCount).length).trim().split(/[\r\n]+/)[0];
-          industry = raw.replace(/[·.,#!?]/g, '').trim();
+      // Industry + address parsing. The OLD code required a US-style numbered
+      // address (\d+ [\w\s]+) to even attempt extraction, which silently
+      // skipped most Filipino / SEA listings (which use Sitio/Barangay, not
+      // street numbers). New approach: anchor on the rating string and read
+      // forward — the card layout is consistently "<title> <rating><reviews>
+      // <industry> <address> Open|Closed …". Splits on linebreaks/middots
+      // give us industry first, address after.
+      const cleanText = (container.innerText || container.textContent || '').replace(/ /g, ' ');
+      const rrToken = (rating || '') + (reviewCount || '');
+      if (rrToken) {
+        const after = cleanText.indexOf(rrToken);
+        if (after !== -1) {
+          let tail = cleanText.substring(after + rrToken.length);
+          // Trim Open/Closed hours and everything past them — those come AFTER address.
+          tail = tail.replace(/\s*(Closes|Closed|Opens|Open(?:s|ed)?(?: \d|\.|\b)|24 hours).*$/is, '').trim();
+          // The first line/segment is industry, remaining is address.
+          const parts = tail.split(/[\r\n]+|\s+·\s+/).map((s) => s.trim()).filter(Boolean);
+          if (parts.length >= 1) industry = parts[0].replace(/[·.,#!?]+$/g, '').trim();
+          if (parts.length >= 2) address = parts.slice(1).join(', ').replace(/^[·.,\s]+|[·.,\s]+$/g, '').trim();
         }
-        address = address.replace(/\b(Closed|Open 24 hours|24 hours)|Open\b/g, '').trim()
-                         .replace(/(\w)(Open|Closed)/g, '$1').trim();
+      }
+      // Fallback for cards that DO have a numbered address — preserves the
+      // original behaviour as a backup when the rating-anchored parse misses.
+      if (!address) {
+        const numMatch = cleanText.match(/\d+\s+[\w\s,]+(?=\s+(?:Open|Closed|·|$))/i);
+        if (numMatch) address = numMatch[0].trim();
       }
 
       const allAnchors = Array.from(container.querySelectorAll('a[href]'));
