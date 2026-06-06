@@ -496,14 +496,14 @@ const batchEvent = async (payload) => {
 };
 
 async function scrapeQueryTab(query, anchor) {
-  // anchor (optional): { lat, lng, zoom } from coords.json. When present,
-  // append /@lat,lng,zoom to constrain Maps' search to that exact spot —
-  // much more specific than text alone, and avoids cross-region collisions.
-  let url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
-  if (anchor && typeof anchor.lat === 'number' && typeof anchor.lng === 'number') {
-    const z = anchor.zoom || 13;
-    url += `/@${anchor.lat},${anchor.lng},${z}z`;
-  }
+  // anchor is now IGNORED. The combination of a verbose text query
+  // ("hostels in El Nido, Palawan, Philippines") + a @lat,lng,zoom URL anchor
+  // breaks Maps: the feed panel doesn't render and every query returns 0
+  // results. The full text query is already location-specific enough — the
+  // city/region/country triple disambiguates without needing the URL anchor.
+  // Coords stay in coords.json for any future use, just no longer welded
+  // into the URL.
+  const url = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
   const tab = await openTab(url);
 
   let cards = [];
