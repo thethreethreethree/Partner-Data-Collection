@@ -359,6 +359,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const anyCategoryChecked =
         batchCatCheckboxes().filter((cb) => cb.checked).length +
         essentialsCheckboxes().filter((cb) => cb.checked).length > 0;
+      const { batchState } = await chrome.storage.local.get('batchState');
+      // Authoritative: when a batch is actively running, Start stays disabled
+      // and Stop/Pause stay enabled regardless of form selection — these are
+      // safety controls. Without this, init race conditions can leave Stop
+      // greyed out mid-batch (the user can't interrupt a runaway scrape).
+      if (batchState && batchState.phase === 'running') {
+        batchStartButton.disabled = true;
+        batchStopButton.disabled  = false;
+        batchPauseButton.disabled = false;
+        return;
+      }
       if (selectedCities().length > 0) {
         batchStartButton.disabled = !anyCategoryChecked;
         return;
@@ -367,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function () {
       // empty), but a previous batch left cities in batchState (visible as
       // pills under "Cities progress"), allow Start Batch — the click handler
       // will reuse those cities.
-      const { batchState } = await chrome.storage.local.get('batchState');
       const stateCities = (batchState && Array.isArray(batchState.cities)) ? batchState.cities : [];
       batchStartButton.disabled = stateCities.length === 0 || !anyCategoryChecked;
     }
@@ -478,20 +488,15 @@ document.addEventListener('DOMContentLoaded', function () {
       cityCheckboxesEl.dispatchEvent(new Event('change'));
     });
 
-    // Restore country/region selection across popup opens.
-    chrome.storage.local.get(['locCountry','locRegion','batchCats','essentialsCats'], (s) => {
-      if (s.batchCats && Array.isArray(s.batchCats) && s.batchCats.length) {
-        const enabled = new Set(s.batchCats);
-        batchCatCheckboxes().forEach((cb) => { cb.checked = enabled.has(cb.value); });
-      }
-      // Essentials default to unchecked (the user opts in); only restore checked
-      // state if the user has explicitly enabled some before.
-      if (s.essentialsCats && Array.isArray(s.essentialsCats)) {
-        const enabled = new Set(s.essentialsCats);
-        essentialsCheckboxes().forEach((cb) => { cb.checked = enabled.has(cb.value); });
-      }
-      // After restoring checkboxes, sync the two "Select all" toggles so they
-      // reflect the restored state (checked only when every child is checked).
+    // Restore country/region selection across popup opens. Category checkboxes
+    // (both Destinations and Essentials) are intentionally NOT auto-restored —
+    // the user reported being surprised by stale selections from a previous
+    // session leaking into a new batch. Categories are now explicit per popup
+    // open: the user picks what they want each time, no defaults, no carry-over.
+    // (Storage writes still happen so the live batch can read its own state;
+    // the popup just doesn't apply them back to the checkboxes on init.)
+    chrome.storage.local.get(['locCountry','locRegion'], (s) => {
+      // Sync the two "Select all" toggles to the (empty) initial state.
       syncBatchCatAll();
       syncEssentialsAll();
       // Refresh the Start Batch enable state now that categories are restored —
@@ -644,16 +649,39 @@ document.addEventListener('DOMContentLoaded', function () {
         syncBatchLabel(slug);
         chrome.storage.local.set({ batchName: slug });
       }
+      // Confirm what's about to run. Categories persist across popup opens
+      // (so you don't have to re-pick every time), which means an old "Select
+      // all" can quietly carry into a new session. This dialog is the last
+      // chance to catch a stale selection before the batch fires off N queries.
+      const cityList = cities.map((c) => c.city).join(', ');
+      const mainCount = mainCats.length, essCount = essentialsCats.length;
+      const totalQueries = cities.length * categories.length;
+      const confirmMsg =
+        `Start batch with the following?\n\n` +
+        `Cities (${cities.length}): ${cityList}\n\n` +
+        `Destinations (${mainCount}): ${mainCats.join(', ') || '—'}\n\n` +
+        `Essentials (${essCount}): ${essentialsCats.join(', ') || '—'}\n\n` +
+        `Total: ${totalQueries} queries.\n\nCancel to review/uncheck before starting.`;
+      if (!confirm(confirmMsg)) return;
       resetLivePanel();
       livePhaseEl.textContent = `Batch · ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} × ${categories.length} categor${categories.length === 1 ? 'y' : 'ies'}`;
       liveCurrent.textContent = 'Starting…';
       batchSummary.textContent = `Starting ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} × ${categories.length} cats…`;
       batchStartButton.disabled = true;
       batchStopButton.disabled = false;
+      batchPauseButton.disabled = false;
       enrichPanel.style.display = 'block';
-      enrichLog.textContent += `Batch start: ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} (${cityNames.join(', ')}) × [${categories.join(', ')}]\n`;
+      enrichLog.textContent += `Batch start: ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} (${cityList}) × [${categories.join(', ')}]\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
       chrome.runtime.sendMessage({ type: 'START_BATCH', cities, categories, skipEnrichCats });
+      // If we're in the chrome action popup (not already a tab), open ourselves
+      // in a tab so the user keeps a persistent monitor — the action popup
+      // closes as soon as the first Maps tab steals focus, taking the live log
+      // and Stop button with it. The tab view shows the same UI, doesn't close.
+      const isTabView = new URLSearchParams(location.search).get('view') === 'tab';
+      if (!isTabView) {
+        try { chrome.tabs.create({ url: chrome.runtime.getURL('popup.html?view=tab'), active: true }); } catch {}
+      }
     });
 
     batchStopButton.addEventListener('click', () => {

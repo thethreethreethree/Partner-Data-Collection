@@ -739,6 +739,58 @@ async function runBatch(cities, categories) {
   }
   const dupes = all.length - deduped.length;
 
+  // --- Geographic re-tagging --------------------------------------------
+  // Dedupe above is first-occurrence-wins: if Duli's query scrapes a scooter
+  // rental that's actually next to El Nido, the row is tagged "Duli" forever
+  // because Duli ran first alphabetically. That makes per-city counts in the
+  // exported CSV lie (e.g. "El Nido has 2 scooter rentals" when really there
+  // are ~80, all hiding under the Duli tag).
+  //
+  // Fix: now that we have lat/lng on every place, reassign each row to the
+  // batch city whose center it's closest to (Haversine). Update the City
+  // column and rewrite the Source Query so the category prefix stays but the
+  // location part reflects the place's actual geography.
+  //
+  // Then drop rows that fall OUTSIDE the re-assigned city's radius — these
+  // are the leakage from custom cities without coords (like Duli) whose
+  // queries had no radius filter and returned places 30+ km away. Cities
+  // marked failOpen=true skip this drop (they're explicitly whole-region).
+  const citiesWithCoords = cities.filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number');
+  let retagged = 0, droppedOutOfRadius = 0;
+  if (citiesWithCoords.length) {
+    const survivors = [];
+    for (const it of deduped) {
+      const lat = parseFloat(it.latitude), lng = parseFloat(it.longitude);
+      if (isNaN(lat) || isNaN(lng)) { survivors.push(it); continue; }
+      let closest = citiesWithCoords[0];
+      let minD = haversineKm(closest.lat, closest.lng, lat, lng);
+      for (let i = 1; i < citiesWithCoords.length; i++) {
+        const c = citiesWithCoords[i];
+        const d = haversineKm(c.lat, c.lng, lat, lng);
+        if (d < minD) { minD = d; closest = c; }
+      }
+      if (closest.city !== it.city) {
+        retagged++;
+        it.city = closest.city;
+        if (it.sourceQuery) {
+          const m2 = it.sourceQuery.match(/^(.+?)\s+in\s+/);
+          if (m2) it.sourceQuery = `${m2[1]} in ${closest.full || closest.city}`;
+        }
+      }
+      // Drop if outside the re-assigned city's radius (unless that city is
+      // marked failOpen — then we keep everything that landed nearest to it).
+      const radiusKm = typeof closest.radius === 'number' ? closest.radius : null;
+      if (closest.failOpen === true || radiusKm == null || minD <= radiusKm) {
+        survivors.push(it);
+      } else {
+        droppedOutOfRadius++;
+      }
+    }
+    deduped.length = 0;
+    deduped.push(...survivors);
+    log(`Re-tagged ${retagged} rows to nearest-city; dropped ${droppedOutOfRadius} rows outside all city radii.`);
+  }
+
   // Convert object rows → 2D rows in BATCH_HEADERS order, save to storage.
   const tableRows = deduped.map((o) => BATCH_KEYS.map((k) => (o[k] != null ? String(o[k]) : '')));
   await chrome.storage.local.set({
