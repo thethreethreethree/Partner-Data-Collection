@@ -294,16 +294,31 @@ async function searchSocials(query) {
   }
 }
 
-async function processRow(headers, row, idx) {
+async function processRow(headers, row, idx, skipEnrichCats) {
   const I = (name) => headers.indexOf(name);
   const iTitle = I('Title'), iMaps = I('Google Maps Link');
   const iWeb = I('Website'), iPhone = I('Phone');
   const iIg  = I('Instagram'), iFb = I('Facebook'), iWa = I('WhatsApp'), iImg = I('Image'), iAm = I('Amenities');
   const iAddr = I('Address'), iInd = I('Industry');
+  const iSrc = I('Source Query');
 
   const title = row[iTitle] || '(no title)';
   const mapsUrl = row[iMaps];
   if (!mapsUrl) { log(`[${idx+1}] ${title}: no Maps link, skipped`); return; }
+
+  // Skip enrichment for rows that came from "DO NOT COLLECT" essentials
+  // categories (ATM, Bank, Gas Station, etc.). Their Source Query category
+  // matches one of the values in skipEnrichCats, and enrichment would only
+  // chase Phone/Instagram/Facebook/Industry data that doesn't apply.
+  if (skipEnrichCats && skipEnrichCats.length && iSrc >= 0) {
+    const sq = (row[iSrc] || '').toLowerCase();
+    const m = sq.match(/^(.+?)\s+in\s+/);
+    const cat = m ? m[1].trim() : '';
+    if (cat && skipEnrichCats.includes(cat)) {
+      log(`[${idx+1}] ${title}: skipped (essentials, no enrichment)`);
+      return;
+    }
+  }
 
   log(`[${idx+1}] ${title}`);
   const mapsTab = await openTab(mapsUrl);
@@ -407,12 +422,13 @@ async function processRow(headers, row, idx) {
 async function run() {
   if (RUNNING) return;
   RUNNING = true; ABORT = false;
-  const { headers, rows, progress = 0 } = await chrome.storage.local.get(['headers','rows','progress']);
+  const { headers, rows, progress = 0, skipEnrichCats = [] } =
+    await chrome.storage.local.get(['headers','rows','progress','skipEnrichCats']);
   if (!rows || !headers) { log('No rows in storage.'); RUNNING = false; done(); return; }
   log(`Enriching from row ${progress+1}/${rows.length}`);
   for (let i = progress; i < rows.length; i++) {
     if (ABORT) { log('Stopped.'); break; }
-    try { await processRow(headers, rows[i], i); }
+    try { await processRow(headers, rows[i], i, skipEnrichCats); }
     catch (e) { log(`[${i+1}] error: ${e.message}`); }
     await chrome.storage.local.set({ rows, progress: i+1, status: `Enriched ${i+1}/${rows.length}` });
     tick();
@@ -616,10 +632,13 @@ async function runBatch(cities, categories) {
       await awaitResume();
       if (ABORT) { log('Batch stopped.'); break outer; }
       const cat = categories[cati];
-      // Full-specificity search format: "<category> in <city>, <region>, <country>".
-      // Including region + country tells Maps exactly which location we mean
-      // (no ambiguous "San Juan", "Cebu City variant", etc.) and seems to give
-      // better lazy-load behavior on borderline-size queries.
+      // Search format: "<category> in <city>, <region>, <country>".
+      // Example: "hostels in El Nido, Palawan, Philippines".
+      // Region + country disambiguate ambiguous city names (e.g. multiple "San Juan").
+      // Critical: the region string MUST NOT contain a more famous place name than
+      // the city, or Maps' geocoder will anchor to the famous name instead. Region
+      // names in locations.json are now neutral ("Western Visayas" not "Boracay &
+      // Western Visayas") to keep this format viable.
       const q = `${cat} in ${cityObj.full}`;
       queryIdx++;
       const evtBase = {
@@ -726,6 +745,12 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'START_BATCH') {
     const cities = Array.isArray(msg.cities) ? msg.cities
       : (msg.location ? [{ city: msg.location, region: '', country: '', full: msg.location }] : []);
+    // skipEnrichCats: lower-cased category values (from the Essentials section
+    // items marked "DO NOT COLLECT") that processRow() should skip during the
+    // enrichment phase. Persisted so the enrichment loop — which runs after the
+    // scrape phase finishes — can read it.
+    const skipEnrichCats = Array.isArray(msg.skipEnrichCats) ? msg.skipEnrichCats : [];
+    chrome.storage.local.set({ skipEnrichCats });
     runBatch(cities, msg.categories);
   }
 });

@@ -255,6 +255,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const cityPillsHint     = document.getElementById('city-pills-hint');
     const pillSelection     = new Set(); // city names selected for combine-export
     const batchCatCheckboxes = () => Array.from(document.querySelectorAll('.batch-cat'));
+    // Essentials & Services group — scraped in the same batch run, but exported
+    // separately and (for the items marked DO NOT COLLECT in the spec) skipped
+    // during enrichment to avoid wasting time on Phone/Instagram/Facebook lookups
+    // that don't apply to ATMs, banks, gas stations, etc.
+    const essentialsCheckboxes = () => Array.from(document.querySelectorAll('.essentials-cat'));
+    const combineEssentialsBtn       = document.getElementById('combineEssentialsButton');
+    const exportEssentialsPerCityBtn = document.getElementById('exportEssentialsPerCityButton');
+    // Lower-cased list of essentials category values, for filtering rows by Source
+    // Query at export time and during skip-enrich checks.
+    const ESSENTIALS_VALUES = () => essentialsCheckboxes().map((cb) => cb.value.toLowerCase());
+    // Extract the category prefix from a Source Query string ("<cat> in <full>").
+    const categoryOfSourceQuery = (sq) => {
+      const s = (sq || '').toLowerCase();
+      const m = s.match(/^(.+?)\s+in\s+/);
+      return m ? m[1].trim() : '';
+    };
+    // True if the row's Source Query category is one of the essentials values.
+    const isEssentialsRow = (row, iSrcQuery, essentialsSet) => {
+      if (iSrcQuery < 0) return false;
+      const cat = categoryOfSourceQuery(row[iSrcQuery]);
+      return essentialsSet.has(cat);
+    };
 
     // Locations data: merge bundled JSON with user's custom additions.
     let LOCATIONS = {};
@@ -333,8 +355,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .filter((cb) => cb.checked).map((cb) => cb.value);
     }
     function updateStartEnabled() {
-      batchStartButton.disabled = selectedCities().length === 0 ||
-        batchCatCheckboxes().filter((cb) => cb.checked).length === 0;
+      const anyCategoryChecked =
+        batchCatCheckboxes().filter((cb) => cb.checked).length +
+        essentialsCheckboxes().filter((cb) => cb.checked).length > 0;
+      batchStartButton.disabled = selectedCities().length === 0 || !anyCategoryChecked;
     }
     cityCheckboxesEl.addEventListener('change', async () => {
       const key = `${locCountrySel.value}|${locRegionSel.value}`;
@@ -352,11 +376,21 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Restore country/region selection across popup opens.
-    chrome.storage.local.get(['locCountry','locRegion','batchCats'], (s) => {
+    chrome.storage.local.get(['locCountry','locRegion','batchCats','essentialsCats'], (s) => {
       if (s.batchCats && Array.isArray(s.batchCats) && s.batchCats.length) {
         const enabled = new Set(s.batchCats);
         batchCatCheckboxes().forEach((cb) => { cb.checked = enabled.has(cb.value); });
       }
+      // Essentials default to unchecked (the user opts in); only restore checked
+      // state if the user has explicitly enabled some before.
+      if (s.essentialsCats && Array.isArray(s.essentialsCats)) {
+        const enabled = new Set(s.essentialsCats);
+        essentialsCheckboxes().forEach((cb) => { cb.checked = enabled.has(cb.value); });
+      }
+      // After restoring checkboxes, sync the two "Select all" toggles so they
+      // reflect the restored state (checked only when every child is checked).
+      syncBatchCatAll();
+      syncEssentialsAll();
       if (s.locCountry) locCountrySel.value = s.locCountry;
       // Wait for LOCATIONS to load before we can populate regions.
       const tryRestore = () => {
@@ -377,10 +411,40 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.storage.local.set({ locRegion: locRegionSel.value });
       renderCitiesFromSelection();
     });
+    const batchCatAllToggle    = document.getElementById('batchCatAllToggle');
+    const essentialsAllToggle  = document.getElementById('essentialsAllToggle');
+    // Keep the "Select all" toggle reflecting reality — checked only when every
+    // child checkbox in its group is checked. Same pattern as cityAllToggle.
+    function syncBatchCatAll() {
+      const all = batchCatCheckboxes();
+      const on  = all.filter((cb) => cb.checked).length;
+      batchCatAllToggle.checked = all.length > 0 && on === all.length;
+    }
+    function syncEssentialsAll() {
+      const all = essentialsCheckboxes();
+      const on  = all.filter((cb) => cb.checked).length;
+      essentialsAllToggle.checked = all.length > 0 && on === all.length;
+    }
     document.getElementById('batch-cats').addEventListener('change', () => {
       const cats = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
       chrome.storage.local.set({ batchCats: cats });
+      syncBatchCatAll();
       updateStartEnabled();
+    });
+    document.getElementById('batch-essentials').addEventListener('change', () => {
+      const cats = essentialsCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
+      chrome.storage.local.set({ essentialsCats: cats });
+      syncEssentialsAll();
+      updateStartEnabled();
+    });
+    batchCatAllToggle.addEventListener('change', () => {
+      batchCatCheckboxes().forEach((cb) => { cb.checked = batchCatAllToggle.checked; });
+      // Dispatch a change on the container so the existing handler runs (persist + enable).
+      document.getElementById('batch-cats').dispatchEvent(new Event('change'));
+    });
+    essentialsAllToggle.addEventListener('change', () => {
+      essentialsCheckboxes().forEach((cb) => { cb.checked = essentialsAllToggle.checked; });
+      document.getElementById('batch-essentials').dispatchEvent(new Event('change'));
     });
 
     // Add custom country / region / city.
@@ -408,7 +472,18 @@ document.addEventListener('DOMContentLoaded', function () {
     batchStartButton.addEventListener('click', () => {
       const country = locCountrySel.value, region = locRegionSel.value;
       const cityNames = selectedCities();
-      const categories = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
+      const mainCats       = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
+      const essentialsCats = essentialsCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
+      // skipEnrichCats: essentials items marked with data-skip-enrich="true".
+      // Their values are passed to background so processRow() can skip them
+      // during enrichment (no Phone/Instagram/Facebook lookup wasted on ATMs etc.).
+      const skipEnrichCats = essentialsCheckboxes()
+        .filter((cb) => cb.checked && cb.dataset.skipEnrich === 'true')
+        .map((cb) => cb.value);
+      // Merge the two groups into one categories array for the scrape pipeline.
+      // Background.js treats them uniformly; the only divergence is at export and
+      // enrichment time, both of which key off Source Query category.
+      const categories = [...mainCats, ...essentialsCats];
       if (!country || !region || cityNames.length === 0) { alert('Pick a country, a region, and at least one city.'); return; }
       if (categories.length === 0) { alert('Pick at least one category.'); return; }
       const cities = cityNames.map((city) => {
@@ -435,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function () {
       enrichPanel.style.display = 'block';
       enrichLog.textContent += `Batch start: ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} (${cityNames.join(', ')}) × [${categories.join(', ')}]\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
-      chrome.runtime.sendMessage({ type: 'START_BATCH', cities, categories });
+      chrome.runtime.sendMessage({ type: 'START_BATCH', cities, categories, skipEnrichCats });
     });
 
     batchStopButton.addEventListener('click', () => {
@@ -524,6 +599,8 @@ document.addEventListener('DOMContentLoaded', function () {
         batchStopButton.disabled  = false;
         exportPerCityBtn.disabled = true;
         combineCitiesBtn.disabled = true;
+        combineEssentialsBtn.disabled = true;
+        exportEssentialsPerCityBtn.disabled = true;
       } else if (s.phase === 'done') {
         const summary = `${s.runningTotal} unique rows from ${s.total} queries` +
                         (s.dupes ? ` · ${s.dupes} dupes removed` : '');
@@ -535,6 +612,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const hasCities = !!(s.cities && s.cities.length);
         exportPerCityBtn.disabled = !hasCities;
         combineCitiesBtn.disabled = !hasCities;
+        combineEssentialsBtn.disabled = !hasCities;
+        exportEssentialsPerCityBtn.disabled = !hasCities;
         updateCombineButtonLabel((s.cities || []).length);
       }
     }
@@ -549,20 +628,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
-    // --- Export per City: split current rows by City column, download N CSVs ---
-    exportPerCityBtn.addEventListener('click', async () => {
-      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
-      if (!rows || !rows.length) { alert('No rows to export.'); return; }
-      const iCity = headers.indexOf('City');
-      if (iCity < 0) { alert('No City column in this dataset.'); return; }
+    // --- Helper used by all four export handlers: split rows by City column,
+    //     emit one CSV per city. baseName + suffix together form the filename.
+    async function downloadPerCity(headers, rows, iCity, baseName, suffix, logLabel) {
       const byCity = new Map();
       for (const r of rows) {
         const c = (r[iCity] || '_unassigned').trim() || '_unassigned';
         if (!byCity.has(c)) byCity.set(c, []);
         byCity.get(c).push(r);
       }
-      const baseName = (filenameInput.value.trim() || 'batch')
-        .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
       let i = 0;
       for (const [city, cityRows] of byCity) {
         const slug = city.replace(/[^a-z0-9]+/gi, '_').toLowerCase().slice(0, 60);
@@ -570,43 +644,65 @@ document.addEventListener('DOMContentLoaded', function () {
         const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `${baseName}_${slug}.csv`;
+        a.download = `${baseName}_${slug}${suffix}.csv`;
         a.style.display = 'none';
         document.body.appendChild(a);
         // Tiny stagger so Chrome doesn't drop downloads from the same click.
         await new Promise((r) => setTimeout(r, 250 * i++));
         a.click(); a.remove();
       }
-      enrichLog.textContent += `Exported ${byCity.size} per-city CSV${byCity.size === 1 ? '' : 's'}.\n`;
+      enrichLog.textContent += `Exported ${byCity.size} ${logLabel} CSV${byCity.size === 1 ? '' : 's'}.\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
-    });
+      return byCity.size;
+    }
 
-    // --- Combine Selected Cities → one CSV. Click pills to pick, then click here.
-    //     If nothing is selected, exports ALL cities as one combined file
-    //     (effectively a labeled-download alias of the master CSV).
-    combineCitiesBtn.addEventListener('click', async () => {
+    // --- Export per City (Destinations & Experiences): excludes Essentials rows ---
+    exportPerCityBtn.addEventListener('click', async () => {
       const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
       if (!rows || !rows.length) { alert('No rows to export.'); return; }
       const iCity = headers.indexOf('City');
+      const iSrc = headers.indexOf('Source Query');
       if (iCity < 0) { alert('No City column in this dataset.'); return; }
-      const wantAll = pillSelection.size === 0;
-      const filtered = wantAll
-        ? rows
-        : rows.filter((r) => pillSelection.has((r[iCity] || '').trim()));
-      if (filtered.length === 0) {
-        alert('None of the rows match the selected cities. Did you click any pills?');
-        return;
-      }
+      const essentialsSet = new Set(ESSENTIALS_VALUES());
+      const mainRows = rows.filter((r) => !isEssentialsRow(r, iSrc, essentialsSet));
+      if (!mainRows.length) { alert('No Destinations & Experiences rows to export.'); return; }
       const baseName = (filenameInput.value.trim() || 'batch')
         .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
-      // Build a name reflecting the selection: combined_<n>cities or list-of-slugs (capped).
+      await downloadPerCity(headers, mainRows, iCity, baseName, '', 'per-city');
+    });
+
+    // --- Export per City (Essentials & Services): includes ONLY Essentials rows ---
+    exportEssentialsPerCityBtn.addEventListener('click', async () => {
+      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
+      if (!rows || !rows.length) { alert('No rows to export.'); return; }
+      const iCity = headers.indexOf('City');
+      const iSrc = headers.indexOf('Source Query');
+      if (iCity < 0) { alert('No City column in this dataset.'); return; }
+      const essentialsSet = new Set(ESSENTIALS_VALUES());
+      const essRows = rows.filter((r) => isEssentialsRow(r, iSrc, essentialsSet));
+      if (!essRows.length) { alert('No Essentials rows to export.'); return; }
+      const baseName = (filenameInput.value.trim() || 'batch')
+        .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+      await downloadPerCity(headers, essRows, iCity, baseName, '_essentials', 'essentials per-city');
+    });
+
+    // --- Helper used by both Combine handlers: pill-filter cities, build label,
+    //     emit one combined CSV. groupFilter is a predicate applied to rows.
+    async function downloadCombined(headers, rows, iCity, groupFilter, baseName, suffix, logKind) {
+      const wantAll = pillSelection.size === 0;
+      const filtered = (wantAll
+        ? rows
+        : rows.filter((r) => pillSelection.has((r[iCity] || '').trim()))
+      ).filter(groupFilter);
+      if (filtered.length === 0) {
+        alert(`No ${logKind} rows match the selected cities.${pillSelection.size === 0 ? '' : ' (Did you click pills for a city that has these rows?)'}`);
+        return;
+      }
       let label;
       if (wantAll) {
         label = 'all_cities';
       } else if (pillSelection.size <= 3) {
-        label = [...pillSelection].map((c) =>
-          c.replace(/[^a-z0-9]+/gi, '_').toLowerCase()
-        ).join('-');
+        label = [...pillSelection].map((c) => c.replace(/[^a-z0-9]+/gi, '_').toLowerCase()).join('-');
       } else {
         label = `combined_${pillSelection.size}cities`;
       }
@@ -614,12 +710,42 @@ document.addEventListener('DOMContentLoaded', function () {
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `${baseName}_${label}.csv`;
+      a.download = `${baseName}_${label}${suffix}.csv`;
       a.style.display = 'none';
       document.body.appendChild(a); a.click(); a.remove();
       const cityList = wantAll ? 'all cities' : [...pillSelection].join(', ');
-      enrichLog.textContent += `Combined export → ${a.download} (${filtered.length} rows: ${cityList})\n`;
+      enrichLog.textContent += `${logKind} combined → ${a.download} (${filtered.length} rows: ${cityList})\n`;
       enrichLog.scrollTop = enrichLog.scrollHeight;
+    }
+
+    // --- Combine Cities (Destinations & Experiences): excludes Essentials rows ---
+    combineCitiesBtn.addEventListener('click', async () => {
+      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
+      if (!rows || !rows.length) { alert('No rows to export.'); return; }
+      const iCity = headers.indexOf('City');
+      const iSrc = headers.indexOf('Source Query');
+      if (iCity < 0) { alert('No City column in this dataset.'); return; }
+      const essentialsSet = new Set(ESSENTIALS_VALUES());
+      const baseName = (filenameInput.value.trim() || 'batch')
+        .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+      await downloadCombined(headers, rows, iCity,
+        (r) => !isEssentialsRow(r, iSrc, essentialsSet),
+        baseName, '', 'Destinations');
+    });
+
+    // --- Combine Cities (Essentials & Services): includes ONLY Essentials rows ---
+    combineEssentialsBtn.addEventListener('click', async () => {
+      const { headers, rows } = await chrome.storage.local.get(['headers','rows']);
+      if (!rows || !rows.length) { alert('No rows to export.'); return; }
+      const iCity = headers.indexOf('City');
+      const iSrc = headers.indexOf('Source Query');
+      if (iCity < 0) { alert('No City column in this dataset.'); return; }
+      const essentialsSet = new Set(ESSENTIALS_VALUES());
+      const baseName = (filenameInput.value.trim() || 'batch')
+        .replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+      await downloadCombined(headers, rows, iCity,
+        (r) => isEssentialsRow(r, iSrc, essentialsSet),
+        baseName, '_essentials', 'Essentials');
     });
 
     // --- Admin push settings (endpoint + token + optional region) ---
@@ -934,8 +1060,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('clearButton').addEventListener('click', async () => {
       if (!confirm('Clear all scraped + enriched data? This cannot be undone.')) return;
       chrome.runtime.sendMessage({ type: 'STOP' });
-      // Preserve admin endpoint settings (convenience, not data).
-      const keep = await chrome.storage.local.get(['adminApiUrl','adminApiToken','adminRegionId','autoEnrich']);
+      // Preserve user configuration across data clears. Form selections (country,
+      // region, city checkboxes, category checkboxes, filename) and user-added
+      // locations are configuration, not data — they should survive a "clear data"
+      // action so the user doesn't have to re-pick everything on every new search.
+      const keep = await chrome.storage.local.get([
+        'adminApiUrl','adminApiToken','adminRegionId','autoEnrich',
+        'locCountry','locRegion','selectedCities','batchCats','essentialsCats','batchName',
+        'customLocations','searchCats',
+      ]);
       await chrome.storage.local.clear();
       await chrome.storage.local.set(keep);
       renderTable(HEADERS, []);
@@ -952,8 +1085,8 @@ document.addEventListener('DOMContentLoaded', function () {
       enrichButton.disabled = true;
       stopButton.disabled = true;
       runLocalScraperButton.disabled = true;
-      filenameInput.value = '';
-      syncBatchLabel('');
+      // Filename input + batch label intentionally NOT cleared — batchName is
+      // preserved in storage above and the visible UI should reflect it.
     });
 
     function startEnrich() {

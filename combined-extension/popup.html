@@ -325,7 +325,11 @@
       </div>
       <div id="cityPills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
     </div>
-    <div id="batch-cats" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px 10px;">
+    <div style="margin-top:14px; display:flex; align-items:center; gap:8px;">
+      <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Destinations &amp; Experiences</strong>
+      <label class="toggle" style="margin-left:auto;"><input type="checkbox" id="batchCatAllToggle"> Select all</label>
+    </div>
+    <div id="batch-cats" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px 10px;">
       <label class="toggle"><input type="checkbox" class="batch-cat" value="hostels" checked> Hostels</label>
       <label class="toggle"><input type="checkbox" class="batch-cat" value="hotels" checked> Hotels</label>
       <label class="toggle"><input type="checkbox" class="batch-cat" value="resorts" checked> Resorts</label>
@@ -339,6 +343,39 @@
       <label class="toggle"><input type="checkbox" class="batch-cat" value="bars"> Bars</label>
       <label class="toggle"><input type="checkbox" class="batch-cat" value="nightlife"> Nightlife</label>
       <label class="toggle"><input type="checkbox" class="batch-cat" value="nightclubs"> Clubs</label>
+    </div>
+
+    <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Essentials &amp; Services</strong>
+      <span style="font-size:11px; opacity:.75;">— scraped in the same batch, exported separately. Items marked “*” skip enrichment.</span>
+      <label class="toggle" style="margin-left:auto;"><input type="checkbox" id="essentialsAllToggle"> Select all</label>
+    </div>
+    <div id="batch-essentials" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px 10px;">
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="atm" data-skip-enrich="true"> ATM *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="bank" data-skip-enrich="true"> Bank *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="currency exchange" data-skip-enrich="true"> Currency Exchange *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="medical clinic"> Medical Clinic</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="pharmacy"> Pharmacy</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="massage spa"> Massage / Spa</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="gym"> Gym / Fitness</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="public wifi" data-skip-enrich="true"> Public Wi-Fi *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="sim card" data-skip-enrich="true"> SIM Card *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="convenience store"> Convenience Store</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="laundry"> Laundry</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="public restroom" data-skip-enrich="true"> Bathroom *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="luggage storage"> Luggage Storage</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="transportation"> Transportation</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="scooter rental"> Motorbike / Scooter Rental</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="police station"> Police</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="embassy"> Embassy</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="gas station" data-skip-enrich="true"> Petrol Station / Gas Station *</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="post office"> Post Office / Mail</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="tourist information"> Tourist Information Center</label>
+      <label class="toggle"><input type="checkbox" class="essentials-cat" value="coworking space"> Coworking Space</label>
+    </div>
+    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="combineEssentialsButton" class="button" disabled title="Export rows that came from Essentials categories as ONE combined CSV.">Combine Essentials → CSV</button>
+      <button id="exportEssentialsPerCityButton" class="button ghost" disabled title="Download a separate CSV per city, Essentials rows only.">Export Essentials per City</button>
     </div>
   </div>
 

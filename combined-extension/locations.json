@@ -1,19 +1,19 @@
 {
   "Philippines": {
-    "Luzon (North & Central)": ["Tagaytay", "Baguio", "Sagada", "Banaue", "Batad", "Vigan", "Pagudpud", "Laoag", "Baler", "Subic", "Anawangin Cove", "Nagsasa Cove", "Corregidor", "San Juan La Union"],
-    "Metro Manila": ["Manila", "Intramuros", "Binondo", "Ermita Manila", "Malate", "Makati", "Poblacion Makati", "Salcedo Village", "Legazpi Village", "Bonifacio Global City Taguig", "Taguig", "McKinley Hill", "Pasig", "Ortigas Pasig", "Kapitolyo Pasig", "Mandaluyong", "Greenhills San Juan", "San Juan Metro Manila", "Quezon City", "Cubao", "Tomas Morato", "Maginhawa", "Diliman", "Pasay", "Parañaque", "BF Homes Parañaque", "Las Piñas", "Marikina", "Muntinlupa Alabang"],
+    "Luzon (North & Central)": ["Tagaytay", "Baguio", "Sagada", "Banaue", "Batad", "Vigan", "Pagudpud", "Laoag", "Baler", "Subic", "Anawangin Cove", "Nagsasa Cove", "Corregidor", "San Juan La Union", "Burgos Ilocos Norte"],
+    "Metro Manila": ["Manila", "Intramuros", "Binondo", "Ermita Manila", "Malate", "Makati", "Poblacion Makati", "Salcedo Village", "Legazpi Village", "Bonifacio Global City Taguig", "Taguig", "McKinley Hill", "Pasig", "Ortigas Pasig", "Kapitolyo Pasig", "Mandaluyong", "Greenhills San Juan", "Quezon City", "Cubao", "Tomas Morato", "Maginhawa", "Diliman", "Pasay", "Parañaque", "BF Homes Parañaque", "Las Piñas", "Marikina", "Alabang"],
     "Luzon (South / Bicol)": ["Legazpi", "Donsol", "Caramoan", "Calaguas", "Catanduanes", "Puraran"],
     "Batanes": ["Basco", "Sabtang", "Itbayat"],
-    "Palawan": ["El Nido", "Coron", "Port Barton", "San Vicente", "Puerto Princesa", "Sabang", "Balabac"],
+    "Palawan": ["El Nido", "Coron Busuanga", "Coron Island", "Port Barton", "San Vicente", "Puerto Princesa", "Sabang", "Balabac"],
     "Mindoro & nearby": ["Puerto Galera", "Sabang Beach", "White Beach", "Apo Reef"],
-    "Boracay & Western Visayas": ["Boracay", "Iloilo", "Iloilo City", "Gigantes Islands", "Bacolod", "Sipalay"],
+    "Western Visayas": ["Boracay", "Iloilo City", "Gigantes Islands", "Bacolod", "Sipalay"],
     "Cebu": ["Cebu City", "Cebu IT Park", "Capitol Site Cebu", "Lahug Cebu", "Mactan", "Lapu-Lapu City", "Mandaue", "Talisay City Cebu", "Oslob", "Moalboal", "Kawasan Falls", "Badian", "Bantayan Island", "Malapascua Island"],
     "Bohol": ["Tagbilaran", "Panglao", "Alona Beach Panglao", "Chocolate Hills", "Loboc", "Anda"],
     "Negros & Siquijor": ["Dumaguete", "Apo Island", "Siquijor"],
     "Camiguin": ["Mambajao", "White Island", "Catarman"],
     "Davao Region": ["Davao City", "Lanang Davao", "Poblacion Davao", "Toril Davao", "Buhangin Davao", "Mount Apo", "Samal Island"],
-    "Siargao & Surigao": ["Siargao", "General Luna", "Cloud 9", "Pacifico", "Burgos", "Sugba Lagoon", "Bucas Grande", "Enchanted River", "Britania Islands"],
-    "Romblon": ["Tablas", "Romblon", "Carabao Island"]
+    "Siargao & Surigao": ["Siargao", "General Luna", "Cloud 9", "Pacifico", "Sugba Lagoon", "Bucas Grande", "Enchanted River", "Britania Islands"],
+    "Romblon": ["Tablas", "Romblon Island", "Carabao Island"]
   },
   "Thailand": {
     "Bangkok": ["Sukhumvit Bangkok", "Asok Bangkok", "Phrom Phong", "Thonglor", "Ekkamai", "Silom", "Sathorn", "Chong Nonsi", "Khao San Road", "Banglamphu", "Chinatown Bangkok", "Yaowarat", "Ari", "Phaya Thai", "Ratchathewi", "Chatuchak Bangkok", "Old City Bangkok", "Rattanakosin"],
