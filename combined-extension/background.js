@@ -215,6 +215,20 @@ const NAV_TIMEOUT = 20000;
 const SCRAPE_TIMEOUT = 15000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Great-circle distance in km between two lat/lng points (haversine).
+// Used by the scrape-time radius filter to drop cards whose location is
+// further from the city center than the per-city radius set in popup.js.
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 async function openTab(url) {
   // Maps URLs open foreground because Chrome throttles IntersectionObservers
   // (which Maps' lazy-load uses) in background tabs. Non-Maps URLs stay
@@ -660,16 +674,41 @@ async function runBatch(cities, categories) {
         break outer;
       }
 
-      const kept = cards.filter((it) => {
+      const ratingKept = cards.filter((it) => {
         const r = parseFloat((it.rating || '').toString().replace(',', '.'));
         return !isNaN(r) && r >= 3.5;
       });
+      // Scrape-time radius filter (the whole point of the per-city slider in
+      // popup.html). Drops any card whose lat/lng lies outside the city's
+      // radius — Maps' intent-aware geocoder routes non-hospitality categories
+      // to the most famous nearby place name, so an "Iloilo restaurants" query
+      // can return Boracay places; the radius filter discards them.
+      //   - Fail-open whenever we lack the data to filter safely: no city
+      //     coords, no radius set, or failOpen=true on the entry.
+      //   - Stored radius is already the user's effective value (override or
+      //     COORDS default), set in popup.js before START_BATCH.
+      let kept = ratingKept;
+      let radiusDropped = 0;
+      const hasCityCoords = typeof cityObj.lat === 'number' && typeof cityObj.lng === 'number';
+      const radiusKm = typeof cityObj.radius === 'number' ? cityObj.radius : null;
+      const applyRadius = hasCityCoords && radiusKm != null && cityObj.failOpen !== true;
+      if (applyRadius) {
+        kept = ratingKept.filter((it) => {
+          const lat = parseFloat(it.latitude), lng = parseFloat(it.longitude);
+          if (isNaN(lat) || isNaN(lng)) return true; // fail-open per row when coords missing
+          return haversineKm(cityObj.lat, cityObj.lng, lat, lng) <= radiusKm;
+        });
+        radiusDropped = ratingKept.length - kept.length;
+      }
       kept.forEach((it) => { it.sourceQuery = q; it.city = cityObj.city; });
       all.push(...kept);
       cityStatus[ci].scraped += cards.length;
       cityStatus[ci].kept    += kept.length;
       perQuery.push({ query: q, scraped: cards.length, kept: kept.length });
-      log(`      → ${cards.length} cards, ${kept.length} kept`);
+      const radiusNote = applyRadius
+        ? ` (${radiusDropped} dropped by ${radiusKm}km radius around ${cityObj.city})`
+        : (cityObj.failOpen ? ' (radius filter off — fail-open entry)' : '');
+      log(`      → ${cards.length} cards, ${kept.length} kept${radiusNote}`);
 
       batchEvent({ phase: 'scraped', ...evtBase, scraped: cards.length, kept: kept.length, runningTotal: all.length });
       await sleep(1500);

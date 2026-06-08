@@ -348,17 +348,28 @@ document.addEventListener('DOMContentLoaded', function () {
           cb.checked = enabled.has(cb.value);
         });
         updateStartEnabled();
+        renderCityRadii();
       });
     }
     function selectedCities() {
       return Array.from(cityCheckboxesEl.querySelectorAll('.city-cb'))
         .filter((cb) => cb.checked).map((cb) => cb.value);
     }
-    function updateStartEnabled() {
+    async function updateStartEnabled() {
       const anyCategoryChecked =
         batchCatCheckboxes().filter((cb) => cb.checked).length +
         essentialsCheckboxes().filter((cb) => cb.checked).length > 0;
-      batchStartButton.disabled = selectedCities().length === 0 || !anyCategoryChecked;
+      if (selectedCities().length > 0) {
+        batchStartButton.disabled = !anyCategoryChecked;
+        return;
+      }
+      // Fallback: if no cities are checked in the form (Country/Region may be
+      // empty), but a previous batch left cities in batchState (visible as
+      // pills under "Cities progress"), allow Start Batch — the click handler
+      // will reuse those cities.
+      const { batchState } = await chrome.storage.local.get('batchState');
+      const stateCities = (batchState && Array.isArray(batchState.cities)) ? batchState.cities : [];
+      batchStartButton.disabled = stateCities.length === 0 || !anyCategoryChecked;
     }
     cityCheckboxesEl.addEventListener('change', async () => {
       const key = `${locCountrySel.value}|${locRegionSel.value}`;
@@ -369,6 +380,98 @@ document.addEventListener('DOMContentLoaded', function () {
       cityAllToggle.checked = cities.length > 0 &&
         cities.length === cityCheckboxesEl.querySelectorAll('.city-cb').length;
       updateStartEnabled();
+      renderCityRadii();
+    });
+
+    // --- Per-city radius slider panel ---------------------------------------
+    // For each currently-checked city, render a row with a slider so the user
+    // can fine-tune the scrape-time radius filter. Defaults come from COORDS
+    // (radius field, +10% baseline already applied). User overrides persist
+    // to chrome.storage.cityRadius and take precedence over COORDS defaults.
+    const cityRadiiPanel = document.getElementById('city-radii-panel');
+    const cityRadiiList  = document.getElementById('city-radii-list');
+    const defaultRadiusFor = (name) => {
+      const c = COORDS[name];
+      return c && typeof c.radius === 'number' ? c.radius : null;
+    };
+    const isFailOpenCity = (name) => {
+      const c = COORDS[name];
+      return !!(c && c.failOpen === true);
+    };
+    async function renderCityRadii() {
+      // Cities to show: prefer the form's checked cities; fall back to
+      // batchState.cities (the pills) so the panel is useful even when the
+      // form has been cleared but a previous batch is still in state.
+      let names = selectedCities();
+      if (names.length === 0) {
+        const { batchState } = await chrome.storage.local.get('batchState');
+        if (batchState && Array.isArray(batchState.cities)) {
+          names = batchState.cities.map((c) => c.city).filter(Boolean);
+        }
+      }
+      if (names.length === 0) {
+        cityRadiiPanel.style.display = 'none';
+        cityRadiiList.innerHTML = '';
+        return;
+      }
+      cityRadiiPanel.style.display = 'block';
+      const { cityRadius = {} } = await chrome.storage.local.get('cityRadius');
+      cityRadiiList.innerHTML = names.map((name) => {
+        const failOpen = isFailOpenCity(name);
+        const def = defaultRadiusFor(name);
+        if (failOpen) {
+          return `<div class="city-radius-row" data-city="${name}" style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; opacity:.7;">
+            <div style="flex:0 0 170px; font-size:12px; font-weight:600; color:var(--text);">${name}</div>
+            <div style="flex:1; font-size:11px; color:var(--muted); font-style:italic;">Radius filter off — whole-region entry</div>
+          </div>`;
+        }
+        if (def == null) {
+          return `<div class="city-radius-row" data-city="${name}" style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; opacity:.7;">
+            <div style="flex:0 0 170px; font-size:12px; font-weight:600; color:var(--text);">${name}</div>
+            <div style="flex:1; font-size:11px; color:var(--muted); font-style:italic;">No coords / radius — filter skipped</div>
+          </div>`;
+        }
+        const override = cityRadius[name];
+        const current  = (typeof override === 'number') ? override : def;
+        const isOverride = (typeof override === 'number');
+        return `<div class="city-radius-row" data-city="${name}" style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;">
+          <div style="flex:0 0 170px; font-size:12px; font-weight:600; color:var(--text);">${name}</div>
+          <input type="range" class="city-radius-slider" min="3" max="80" step="0.5" value="${current}" data-default="${def}" style="flex:1; accent-color:var(--brand);">
+          <div class="city-radius-value" style="flex:0 0 70px; font-size:12px; font-weight:700; color:var(--brand-ink); font-family:ui-monospace,'SF Mono',Menlo,monospace; text-align:right;">${Number(current).toFixed(1)} km</div>
+          <button class="city-radius-reset" title="Reset to default" style="background:none; border:none; color:${isOverride ? 'var(--brand)' : 'var(--muted)'}; cursor:${isOverride ? 'pointer' : 'default'}; font-size:11px; text-decoration:underline; padding:0; flex:0 0 auto;" ${isOverride ? '' : 'disabled'}>reset</button>
+        </div>`;
+      }).join('');
+    }
+    cityRadiiList.addEventListener('input', async (e) => {
+      const slider = e.target.closest('.city-radius-slider');
+      if (!slider) return;
+      const row  = slider.closest('.city-radius-row');
+      const name = row.dataset.city;
+      const val  = parseFloat(slider.value);
+      row.querySelector('.city-radius-value').textContent = val.toFixed(1) + ' km';
+      const { cityRadius = {} } = await chrome.storage.local.get('cityRadius');
+      cityRadius[name] = val;
+      await chrome.storage.local.set({ cityRadius });
+      const reset = row.querySelector('.city-radius-reset');
+      reset.disabled = false;
+      reset.style.color  = 'var(--brand)';
+      reset.style.cursor = 'pointer';
+    });
+    cityRadiiList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.city-radius-reset');
+      if (!btn || btn.disabled) return;
+      const row    = btn.closest('.city-radius-row');
+      const name   = row.dataset.city;
+      const slider = row.querySelector('.city-radius-slider');
+      const def    = parseFloat(slider.dataset.default);
+      const { cityRadius = {} } = await chrome.storage.local.get('cityRadius');
+      delete cityRadius[name];
+      await chrome.storage.local.set({ cityRadius });
+      slider.value = def;
+      row.querySelector('.city-radius-value').textContent = def.toFixed(1) + ' km';
+      btn.disabled = true;
+      btn.style.color  = 'var(--muted)';
+      btn.style.cursor = 'default';
     });
     cityAllToggle.addEventListener('change', () => {
       cityCheckboxesEl.querySelectorAll('.city-cb').forEach((cb) => { cb.checked = cityAllToggle.checked; });
@@ -391,6 +494,13 @@ document.addEventListener('DOMContentLoaded', function () {
       // reflect the restored state (checked only when every child is checked).
       syncBatchCatAll();
       syncEssentialsAll();
+      // Refresh the Start Batch enable state now that categories are restored —
+      // this catches the case where Country/Region are empty but batchState
+      // has cities from a previous run (pills visible under "Cities progress").
+      updateStartEnabled();
+      // Render per-city radius sliders for whatever cities the previous batch
+      // left in state (so the user can tune radii even before picking a region).
+      renderCityRadii();
       if (s.locCountry) locCountrySel.value = s.locCountry;
       // Wait for LOCATIONS to load before we can populate regions.
       const tryRestore = () => {
@@ -469,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     loadLocations();
 
-    batchStartButton.addEventListener('click', () => {
+    batchStartButton.addEventListener('click', async () => {
       const country = locCountrySel.value, region = locRegionSel.value;
       const cityNames = selectedCities();
       const mainCats       = batchCatCheckboxes().filter((cb) => cb.checked).map((cb) => cb.value);
@@ -484,16 +594,49 @@ document.addEventListener('DOMContentLoaded', function () {
       // Background.js treats them uniformly; the only divergence is at export and
       // enrichment time, both of which key off Source Query category.
       const categories = [...mainCats, ...essentialsCats];
-      if (!country || !region || cityNames.length === 0) { alert('Pick a country, a region, and at least one city.'); return; }
       if (categories.length === 0) { alert('Pick at least one category.'); return; }
-      const cities = cityNames.map((city) => {
-        const obj = { city, region, country, full: `${city}, ${region}, ${country}` };
-        // Attach coords if we have them — background uses these to build a
-        // geo-anchored /maps/search/<query>/@lat,lng,zoom URL.
-        const c = COORDS[city];
-        if (c) { obj.lat = c.lat; obj.lng = c.lng; obj.zoom = c.zoom || 13; }
-        return obj;
-      });
+      let cities;
+      if (cityNames.length > 0 && country && region) {
+        cities = cityNames.map((city) => {
+          const obj = { city, region, country, full: `${city}, ${region}, ${country}` };
+          // Attach coords if we have them — background uses these to build a
+          // geo-anchored /maps/search/<query>/@lat,lng,zoom URL.
+          const c = COORDS[city];
+          if (c) {
+            obj.lat = c.lat; obj.lng = c.lng; obj.zoom = c.zoom || 13;
+            if (typeof c.radius === 'number') obj.radius = c.radius;
+            if (c.failOpen === true) obj.failOpen = true;
+          }
+          return obj;
+        });
+      } else {
+        // Fallback: form is empty but a previous batch is still in state.
+        // Reuse the cities from the previous batch (the ones showing as pills
+        // under "Cities progress") so the user can re-run with new categories.
+        const { batchState } = await chrome.storage.local.get('batchState');
+        const prev = (batchState && Array.isArray(batchState.cities)) ? batchState.cities : [];
+        if (prev.length === 0) { alert('Pick a country, a region, and at least one city.'); return; }
+        // Re-hydrate radius/failOpen from COORDS in case state came from a
+        // pre-radius batch — guarantees radius is present whenever coords are.
+        cities = prev.map((c) => {
+          const def = COORDS[c.city];
+          if (def && c.lat == null) { c.lat = def.lat; c.lng = def.lng; c.zoom = def.zoom || 13; }
+          if (def && c.radius == null && typeof def.radius === 'number') c.radius = def.radius;
+          if (def && def.failOpen === true && c.failOpen == null) c.failOpen = true;
+          return c;
+        });
+      }
+      // Apply the user's per-city radius overrides on top of COORDS defaults.
+      // cityRadius is keyed by city name; if a value exists for this city, it
+      // wins over the default from COORDS. failOpen entries skip the filter
+      // entirely (background.js checks failOpen first), so overrides on them
+      // are stored but unused — harmless.
+      {
+        const { cityRadius = {} } = await chrome.storage.local.get('cityRadius');
+        cities.forEach((c) => {
+          if (typeof cityRadius[c.city] === 'number') c.radius = cityRadius[c.city];
+        });
+      }
       if (!filenameInput.value.trim()) {
         const slug = (cityNames.length === 1 ? cityNames[0] : region).toLowerCase()
           .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -1067,7 +1210,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const keep = await chrome.storage.local.get([
         'adminApiUrl','adminApiToken','adminRegionId','autoEnrich',
         'locCountry','locRegion','selectedCities','batchCats','essentialsCats','batchName',
-        'customLocations','searchCats',
+        'customLocations','searchCats','cityRadius',
       ]);
       await chrome.storage.local.clear();
       await chrome.storage.local.set(keep);
