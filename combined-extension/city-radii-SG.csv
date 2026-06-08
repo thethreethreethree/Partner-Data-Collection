@@ -1,0 +1,11 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Marina Bay Singapore,Singapore,district,7,,FALSE,FALSE,downtown waterfront
+Orchard Road Singapore,Singapore,district,7,,FALSE,FALSE,shopping belt
+Sentosa Singapore,Singapore,island,8,,FALSE,FALSE,~4km
+Chinatown Singapore,Singapore,district,7,,FALSE,FALSE,
+Little India Singapore,Singapore,district,7,,FALSE,FALSE,
+Bugis Singapore,Singapore,district,7,,FALSE,FALSE,
+Tiong Bahru Singapore,Singapore,district,7,,FALSE,FALSE,
+Holland Village Singapore,Singapore,district,7,,FALSE,FALSE,
+Clarke Quay Singapore,Singapore,district,6,,FALSE,FALSE,nightlife strip
+Boat Quay Singapore,Singapore,district,6,,FALSE,FALSE,nightlife strip

@@ -1,0 +1,29 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Bukit Bintang,Kuala Lumpur,district,7,,FALSE,FALSE,shopping district
+KLCC Kuala Lumpur,Kuala Lumpur,district,7,,FALSE,FALSE,Twin Towers area
+Chinatown Kuala Lumpur,Kuala Lumpur,district,7,,FALSE,FALSE,Petaling Street
+Bangsar Kuala Lumpur,Kuala Lumpur,district,8,,FALSE,FALSE,
+Mont Kiara,Kuala Lumpur,district,7,,FALSE,FALSE,expat enclave
+TTDI Kuala Lumpur,Kuala Lumpur,district,7,,FALSE,FALSE,Taman Tun
+Cheras Kuala Lumpur,Kuala Lumpur,district,10,,FALSE,FALSE,large district
+Subang Jaya,Kuala Lumpur,city,13,,FALSE,FALSE,separate city in KL metro
+Petaling Jaya,Kuala Lumpur,large_city,16,,FALSE,FALSE,
+Damansara Kuala Lumpur,Kuala Lumpur,district,9,,FALSE,FALSE,broad area
+George Town Penang,Peninsular,city,12,8.8,FALSE,FALSE,City only - whole-island Penang entry dropped (decided)
+Batu Ferringhi Penang,Peninsular,beach_area,8,,FALSE,FALSE,
+Malacca,Peninsular,heritage_city,11,,FALSE,FALSE,Melaka
+Pantai Cenang Langkawi,Peninsular,beach_area,8,,FALSE,FALSE,main tourist strip
+Kuah Langkawi,Peninsular,town,8,,FALSE,FALSE,ferry town
+Langkawi,Peninsular,island_large,30,,TRUE,FALSE,~25km island - fail_open
+Cameron Highlands,Peninsular,highland_region,15,,TRUE,FALSE,mountain region - fail_open
+Taman Negara,Peninsular,national_park,40,,TRUE,FALSE,massive rainforest - fail_open
+Perhentian Besar,Peninsular,island,8,,FALSE,FALSE,~3km island
+Perhentian Kecil,Peninsular,island,8,,FALSE,FALSE,~2km island
+Tioman Island,Peninsular,island_large,22,,FALSE,FALSE,~20km island
+Kota Kinabalu,Borneo,city,13,,FALSE,FALSE,KK
+Tanjung Aru Kota Kinabalu,Borneo,district,7,,FALSE,FALSE,
+Likas Kota Kinabalu,Borneo,district,7,,FALSE,FALSE,
+Kuching,Borneo,city,13,,FALSE,FALSE,Sarawak capital
+Sipadan,Borneo,island_small,7,,FALSE,FALSE,dive island
+Semporna,Borneo,town,9,,FALSE,FALSE,gateway to Sipadan
+Sandakan,Borneo,city,12,,FALSE,FALSE,

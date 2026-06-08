@@ -1,0 +1,3 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Dili,Main Destinations,small_city,11,,FALSE,FALSE,capital
+Atauro Island,Main Destinations,island,15,,FALSE,FALSE,~25km long but narrow

@@ -39,7 +39,7 @@
   "Laos": {
     "North": ["Luang Prabang", "Vang Vieng"],
     "Central": ["Vientiane", "Chanthabouly Vientiane", "Sisattanak Vientiane", "Sikhottabong Vientiane"],
-    "South": ["Pakse", "Bolaven Plateau", "4000 Islands", "Si Phan Don"]
+    "South": ["Pakse", "Bolaven Plateau", "Si Phan Don"]
   },
   "Myanmar": {
     "Yangon": ["Downtown Yangon", "Bahan Yangon", "Kamayut Yangon", "Sanchaung Yangon", "Yangon"],
@@ -48,7 +48,7 @@
   },
   "Malaysia": {
     "Kuala Lumpur": ["Bukit Bintang", "KLCC Kuala Lumpur", "Chinatown Kuala Lumpur", "Bangsar Kuala Lumpur", "Mont Kiara", "TTDI Kuala Lumpur", "Cheras Kuala Lumpur", "Subang Jaya", "Petaling Jaya", "Damansara Kuala Lumpur"],
-    "Peninsular": ["George Town Penang", "Batu Ferringhi Penang", "Penang", "Malacca", "Pantai Cenang Langkawi", "Kuah Langkawi", "Langkawi", "Cameron Highlands", "Taman Negara", "Perhentian Besar", "Perhentian Kecil", "Tioman Island"],
+    "Peninsular": ["George Town Penang", "Batu Ferringhi Penang", "Malacca", "Pantai Cenang Langkawi", "Kuah Langkawi", "Langkawi", "Cameron Highlands", "Taman Negara", "Perhentian Besar", "Perhentian Kecil", "Tioman Island"],
     "Borneo": ["Kota Kinabalu", "Tanjung Aru Kota Kinabalu", "Likas Kota Kinabalu", "Kuching", "Sipadan", "Semporna", "Sandakan"]
   },
   "Singapore": {

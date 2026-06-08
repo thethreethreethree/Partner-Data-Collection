@@ -1,0 +1,76 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Sukhumvit Bangkok,Bangkok,district,8,,FALSE,FALSE,major BKK corridor
+Asok Bangkok,Bangkok,district,7,,FALSE,FALSE,intersection/area
+Phrom Phong,Bangkok,district,7,,FALSE,FALSE,
+Thonglor,Bangkok,district,7,,FALSE,FALSE,
+Ekkamai,Bangkok,district,7,,FALSE,FALSE,
+Silom,Bangkok,district,8,,FALSE,FALSE,
+Sathorn,Bangkok,district,8,,FALSE,FALSE,
+Chong Nonsi,Bangkok,district,6,,FALSE,FALSE,
+Khao San Road,Bangkok,landmark,6,,FALSE,FALSE,backpacker street area
+Banglamphu,Bangkok,district,7,,FALSE,FALSE,
+Chinatown Bangkok,Bangkok,district,8,,FALSE,FALSE,
+Yaowarat,Bangkok,district,7,,FALSE,FALSE,heart of Chinatown
+Ari,Bangkok,district,7,,FALSE,FALSE,
+Phaya Thai,Bangkok,district,7,,FALSE,FALSE,
+Ratchathewi,Bangkok,district,7,,FALSE,FALSE,
+Chatuchak Bangkok,Bangkok,district,8,,FALSE,FALSE,
+Old City Bangkok,Bangkok,district,8,,FALSE,FALSE,
+Rattanakosin,Bangkok,district,7,,FALSE,FALSE,old royal district
+Bangkok,Bangkok,large_city,25,,FALSE,FALSE,whole city ~20km
+Ayutthaya,Central / near Bangkok,heritage_city,10,,FALSE,FALSE,
+Amphawa,Central / near Bangkok,town,8,,FALSE,FALSE,floating market town
+Damnoen Saduak,Central / near Bangkok,town,8,,FALSE,FALSE,floating market
+Kanchanaburi,Central / near Bangkok,town,10,,FALSE,FALSE,
+Old City Chiang Mai,Northern Thailand,district,7,,FALSE,FALSE,inside city moat
+Nimmanhaemin Chiang Mai,Northern Thailand,district,7,,FALSE,FALSE,
+Santitham Chiang Mai,Northern Thailand,district,7,,FALSE,FALSE,
+Chiang Mai,Northern Thailand,mid_city,18,,FALSE,FALSE,
+Chiang Rai,Northern Thailand,small_city,11,,FALSE,FALSE,
+Pai,Northern Thailand,town,8,,FALSE,FALSE,
+Mae Hong Son,Northern Thailand,town,9,,FALSE,FALSE,
+Sukhothai,Northern Thailand,town,9,5.5,FALSE,FALSE,New Sukhothai Town (decided)
+Lampang,Northern Thailand,small_city,10,,FALSE,FALSE,
+Nan,Northern Thailand,town,9,,FALSE,FALSE,
+Chiang Khong,Northern Thailand,town,8,,FALSE,FALSE,border town
+Khao Yai,Northeast (Isaan),national_park,30,,TRUE,FALSE,national park ~50km - fail_open
+Phanom Rung,Northeast (Isaan),landmark,5,,FALSE,FALSE,Khmer temple
+Buriram,Northeast (Isaan),small_city,10,,FALSE,FALSE,
+Chiang Khan,Northeast (Isaan),town,8,,FALSE,FALSE,
+Loei,Northeast (Isaan),small_city,9,,FALSE,FALSE,
+Nong Khai,Northeast (Isaan),small_city,9,,FALSE,FALSE,Laos border
+Pattaya,Eastern Gulf coast,city,15,,FALSE,FALSE,~10km coastal strip
+Jomtien Pattaya,Eastern Gulf coast,district,8,,FALSE,FALSE,south Pattaya
+Naklua Pattaya,Eastern Gulf coast,district,7,,FALSE,FALSE,north Pattaya
+Ko Samet,Eastern Gulf coast,island,12,,FALSE,FALSE,~7km island
+Ko Chang,Eastern Gulf coast,island_large,25,22.0,FALSE,FALSE,whole island filter (decided) - radius covers most of island
+Ko Kood,Eastern Gulf coast,island_large,20,,FALSE,FALSE,~15km island
+Hua Hin,Western / royal coast,city,13,,FALSE,FALSE,
+Cha-am,Western / royal coast,beach_town,10,,FALSE,FALSE,
+Khao Sok,Western / royal coast,national_park,30,,TRUE,FALSE,national park - fail_open
+Chaweng Ko Samui,Southern Gulf islands,beach_area,7,,FALSE,FALSE,main beach strip
+Lamai Ko Samui,Southern Gulf islands,beach_area,7,,FALSE,FALSE,
+Bophut Ko Samui,Southern Gulf islands,beach_area,7,,FALSE,FALSE,Fisherman's Village
+Ko Samui,Southern Gulf islands,island_large,25,22.0,FALSE,FALSE,whole island filter (decided)
+Haad Rin Ko Phangan,Southern Gulf islands,beach_area,6,,FALSE,FALSE,Full Moon Party beach
+Ko Phangan,Southern Gulf islands,island_large,20,16.5,FALSE,FALSE,whole island filter (decided)
+Ko Tao,Southern Gulf islands,island,12,,FALSE,FALSE,~7km
+Patong,Andaman coast,beach_town,8,,FALSE,FALSE,
+Kata,Andaman coast,beach_area,7,,FALSE,FALSE,
+Karon,Andaman coast,beach_area,7,,FALSE,FALSE,
+Phuket Town,Andaman coast,city,13,,FALSE,FALSE,
+Rawai,Andaman coast,beach_town,7,,FALSE,FALSE,
+Kamala Phuket,Andaman coast,beach_area,7,,FALSE,FALSE,
+Bang Tao Phuket,Andaman coast,beach_area,8,,FALSE,FALSE,
+Phuket,Andaman coast,whole_island,45,,TRUE,FALSE,~40km island - fail_open
+Krabi,Andaman coast,town,10,11.0,FALSE,FALSE,Krabi Town only (decided)
+Ao Nang,Andaman coast,beach_town,9,,FALSE,FALSE,
+Railay,Andaman coast,peninsula,7,,FALSE,FALSE,no road access
+Ko Phi Phi,Andaman coast,islands,10,,FALSE,FALSE,Don + Leh
+Ko Lanta,Andaman coast,island_large,30,,TRUE,FALSE,~25km long - fail_open
+Khao Lak,Andaman coast,beach_strip,20,,FALSE,FALSE,~15km long
+Phang Nga Bay,Andaman coast,region,30,,TRUE,FALSE,bay/region with many islands - fail_open
+Koh Yao Noi,Andaman coast,island,12,,FALSE,FALSE,
+Koh Yao Yai,Andaman coast,island_large,18,,FALSE,FALSE,
+Similan Islands,Andaman coast,island_group,15,,TRUE,FALSE,island group - fail_open
+Ko Lipe,Andaman coast,island_small,7,,FALSE,FALSE,~2km

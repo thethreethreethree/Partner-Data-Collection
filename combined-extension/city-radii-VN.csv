@@ -1,0 +1,38 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Old Quarter Hanoi,North,district,7,,FALSE,FALSE,historic core
+Hoan Kiem Hanoi,North,district,7,,FALSE,FALSE,lake area
+Tay Ho Hanoi,North,district,9,,FALSE,FALSE,West Lake expat area
+Ba Dinh Hanoi,North,district,8,,FALSE,FALSE,government district
+Hai Ba Trung Hanoi,North,district,8,,FALSE,FALSE,
+Cau Giay Hanoi,North,district,9,,FALSE,FALSE,
+Hanoi,North,large_city,20,,FALSE,FALSE,
+Ha Long Bay,North,region,30,,TRUE,FALSE,bay/UNESCO area - fail_open
+Sapa,North,town,9,,FALSE,FALSE,mountain town
+Ninh Binh,North,town,10,,FALSE,FALSE,
+Ha Giang,North,town,15,8.8,FALSE,FALSE,Ha Giang Town only (decided)
+Cat Ba,North,island,15,,FALSE,FALSE,~13km island
+Old Citadel Hue,Central,district,7,,FALSE,FALSE,Imperial City
+Backpacker Hue,Central,district,6,,FALSE,FALSE,
+Hue,Central,city,13,,FALSE,FALSE,
+Ancient Town Hoi An,Central,district,6,,FALSE,FALSE,UNESCO old town
+An Bang Beach Hoi An,Central,beach_area,6,,FALSE,FALSE,
+Cam Thanh Hoi An,Central,district,7,,FALSE,FALSE,coconut village
+Hoi An,Central,small_city,11,,FALSE,FALSE,
+My Khe Beach Da Nang,Central,beach_area,7,,FALSE,FALSE,
+An Thuong Da Nang,Central,district,7,,FALSE,FALSE,expat area
+Han Riverside Da Nang,Central,district,7,,FALSE,FALSE,
+Son Tra Da Nang,Central,peninsula,12,,FALSE,FALSE,Monkey Mountain
+Da Nang,Central,large_city,18,,FALSE,FALSE,
+Phong Nha,Central,town,9,,FALSE,FALSE,caves area
+District 1 Ho Chi Minh,South,district,8,,FALSE,FALSE,city center
+District 3 Ho Chi Minh,South,district,8,,FALSE,FALSE,
+District 5 Ho Chi Minh,South,district,8,,FALSE,FALSE,Chinatown
+Thao Dien District 2 Ho Chi Minh,South,district,7,,FALSE,FALSE,expat area
+District 7 Ho Chi Minh,South,district,9,,FALSE,FALSE,modern district
+Phu My Hung Ho Chi Minh,South,district,7,,FALSE,FALSE,within D7
+Ho Chi Minh City,South,large_city,25,,FALSE,FALSE,Saigon ~22km
+Mekong Delta,South,region,80,,TRUE,FALSE,huge delta region - fail_open
+Phu Quoc,South,island_large,40,,TRUE,FALSE,~50km island - fail_open
+Da Lat,South,small_city,12,,FALSE,FALSE,highland city
+Mui Ne,South,beach_town,11,,FALSE,FALSE,
+Nha Trang,South,city,13,,FALSE,FALSE,

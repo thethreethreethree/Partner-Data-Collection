@@ -1,0 +1,17 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Colombo,Colombo,large_city,16,,FALSE,FALSE,
+Fort Colombo,Colombo,district,7,,FALSE,FALSE,colonial core
+Cinnamon Gardens Colombo,Colombo,district,7,,FALSE,FALSE,upscale district
+Mount Lavinia,Colombo,beach_district,9,,FALSE,FALSE,suburb of Colombo
+Mirissa,South Coast,beach_town,8,,FALSE,FALSE,
+Weligama,South Coast,beach_town,9,,FALSE,FALSE,
+Unawatuna,South Coast,beach_town,8,,FALSE,FALSE,
+Galle,South Coast,small_city,11,,FALSE,FALSE,
+Galle Fort,South Coast,district,5,,FALSE,FALSE,UNESCO fort inside Galle
+Tangalle,South Coast,beach_town,9,,FALSE,FALSE,
+Ella,Hill Country,town,8,,FALSE,FALSE,mountain town
+Kandy,Hill Country,small_city,11,,FALSE,FALSE,
+Nuwara Eliya,Hill Country,small_city,10,,FALSE,FALSE,tea hill country
+Sigiriya,Cultural Triangle,landmark,8,,FALSE,FALSE,Lion Rock
+Dambulla,Cultural Triangle,town,9,,FALSE,FALSE,cave temples
+Anuradhapura,Cultural Triangle,heritage_city,12,,FALSE,FALSE,UNESCO ancient capital

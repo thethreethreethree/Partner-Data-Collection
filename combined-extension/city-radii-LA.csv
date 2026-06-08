@@ -1,0 +1,10 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Luang Prabang,North,heritage_city,11,,FALSE,FALSE,UNESCO town
+Vang Vieng,North,town,9,,FALSE,FALSE,
+Vientiane,Central,small_city,14,,FALSE,FALSE,capital
+Chanthabouly Vientiane,Central,district,7,,FALSE,FALSE,
+Sisattanak Vientiane,Central,district,7,,FALSE,FALSE,
+Sikhottabong Vientiane,Central,district,8,,FALSE,FALSE,
+Pakse,South,small_city,10,,FALSE,FALSE,
+Bolaven Plateau,South,region,30,,TRUE,FALSE,large highland region - fail_open
+Si Phan Don,South,island_group,20,16.5,FALSE,FALSE,merged with 4000 Islands (decided) - kept Si Phan Don name

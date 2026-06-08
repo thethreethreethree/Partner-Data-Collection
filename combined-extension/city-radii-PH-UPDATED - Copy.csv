@@ -1,0 +1,114 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Tagaytay,Luzon (North & Central),small_city,11,12.1,FALSE,FALSE,
+Baguio,Luzon (North & Central),mid_city,13,14.3,FALSE,FALSE,
+Sagada,Luzon (North & Central),town,8,8.8,FALSE,FALSE,
+Banaue,Luzon (North & Central),town,9,9.9,FALSE,FALSE,
+Batad,Luzon (North & Central),village,6,6.6,FALSE,FALSE,inside Banaue area
+Vigan,Luzon (North & Central),heritage_town,8,8.8,FALSE,FALSE,
+Pagudpud,Luzon (North & Central),beach_town,10,11.0,FALSE,FALSE,
+Laoag,Luzon (North & Central),small_city,10,11.0,FALSE,FALSE,
+Baler,Luzon (North & Central),town,9,9.9,FALSE,FALSE,
+Subic,Luzon (North & Central),town,9,9.9,FALSE,FALSE,Subic town (not freeport zone)
+Anawangin Cove,Luzon (North & Central),landmark,5,5.5,FALSE,FALSE,point + 5km buffer
+Nagsasa Cove,Luzon (North & Central),landmark,5,5.5,FALSE,FALSE,point + 5km buffer
+Corregidor,Luzon (North & Central),island,10,11.0,FALSE,FALSE,
+San Juan La Union,Luzon (North & Central),beach_town,9,9.9,FALSE,FALSE,
+Burgos Ilocos Norte,Luzon (North & Central),town,8,8.8,FALSE,FALSE,renamed from Burgos - moved out of Siargao region
+Manila,Metro Manila,city,17,18.7,FALSE,FALSE,
+Intramuros,Metro Manila,district,6,6.6,FALSE,FALSE,
+Binondo,Metro Manila,district,7,7.7,FALSE,FALSE,
+Ermita Manila,Metro Manila,district,7,7.7,FALSE,FALSE,
+Malate,Metro Manila,district,7,7.7,FALSE,FALSE,
+Makati,Metro Manila,city,11,12.1,FALSE,FALSE,
+Poblacion Makati,Metro Manila,district,6,6.6,FALSE,FALSE,
+Salcedo Village,Metro Manila,district,6,6.6,FALSE,FALSE,
+Legazpi Village,Metro Manila,district,6,6.6,FALSE,FALSE,
+Bonifacio Global City Taguig,Metro Manila,district,8,8.8,FALSE,FALSE,BGC
+Taguig,Metro Manila,city,15,16.5,FALSE,FALSE,
+McKinley Hill,Metro Manila,district,6,6.6,FALSE,FALSE,
+Pasig,Metro Manila,city,11,12.1,FALSE,FALSE,
+Ortigas Pasig,Metro Manila,district,7,7.7,FALSE,FALSE,straddles Pasig/Mandaluyong
+Kapitolyo Pasig,Metro Manila,district,6,6.6,FALSE,FALSE,
+Mandaluyong,Metro Manila,city,10,11.0,FALSE,FALSE,
+Greenhills San Juan,Metro Manila,district,8,8.8,FALSE,FALSE,merged with San Juan Metro Manila - covers San Juan city
+Quezon City,Metro Manila,large_city,20,22.0,FALSE,FALSE,
+Cubao,Metro Manila,district,7,7.7,FALSE,FALSE,
+Tomas Morato,Metro Manila,district,6,6.6,FALSE,FALSE,
+Maginhawa,Metro Manila,district,6,6.6,FALSE,FALSE,really a single street area
+Diliman,Metro Manila,district,8,8.8,FALSE,FALSE,
+Pasay,Metro Manila,city,9,9.9,FALSE,FALSE,
+Parañaque,Metro Manila,city,12,13.2,FALSE,FALSE,
+BF Homes Parañaque,Metro Manila,district,7,7.7,FALSE,FALSE,
+Las Piñas,Metro Manila,city,11,12.1,FALSE,FALSE,
+Marikina,Metro Manila,city,11,12.1,FALSE,FALSE,
+Alabang,Metro Manila,district,8,8.8,FALSE,FALSE,renamed from Muntinlupa Alabang - Alabang area only
+Legazpi,Luzon (South / Bicol),small_city,10,11.0,FALSE,FALSE,
+Donsol,Luzon (South / Bicol),town,8,8.8,FALSE,FALSE,
+Caramoan,Luzon (South / Bicol),peninsula_town,10,11.0,FALSE,FALSE,
+Calaguas,Luzon (South / Bicol),island_group,10,11.0,FALSE,FALSE,
+Catanduanes,Luzon (South / Bicol),whole_island_province,65,71.5,TRUE,FALSE,whole island ~60km - fail_open
+Puraran,Luzon (South / Bicol),landmark,5,5.5,FALSE,FALSE,beach point
+Basco,Batanes,town,8,8.8,FALSE,FALSE,capital of Batanes
+Sabtang,Batanes,island,10,11.0,FALSE,FALSE,
+Itbayat,Batanes,island,11,12.1,FALSE,FALSE,
+El Nido,Palawan,town,10,11.0,FALSE,FALSE,many tourists stay outside town proper
+Coron Busuanga,Palawan,town,9,9.9,FALSE,FALSE,Coron town on Busuanga Island
+Coron Island,Palawan,island,11,12.1,FALSE,FALSE,karst island south of Coron Town
+Port Barton,Palawan,village,7,7.7,FALSE,FALSE,
+San Vicente,Palawan,beach_area,15,16.5,FALSE,FALSE,long beach strip ~10km
+Puerto Princesa,Palawan,city,15,16.5,FALSE,FALSE,
+Sabang,Palawan,village,7,7.7,FALSE,FALSE,Underground River area (not Mindoro Sabang)
+Balabac,Palawan,island_group,15,16.5,FALSE,FALSE,
+Puerto Galera,Mindoro & nearby,town,9,9.9,FALSE,FALSE,
+Sabang Beach,Mindoro & nearby,landmark,5,5.5,FALSE,FALSE,inside Puerto Galera
+White Beach,Mindoro & nearby,landmark,5,5.5,FALSE,FALSE,Mindoro (not Boracay)
+Apo Reef,Mindoro & nearby,landmark,5,5.5,FALSE,FALSE,offshore reef no land
+Boracay,Western Visayas,island,12,13.2,FALSE,FALSE,~7km long
+Iloilo City,Western Visayas,city,15,16.5,FALSE,FALSE,
+Gigantes Islands,Western Visayas,island_group,15,16.5,FALSE,FALSE,
+Bacolod,Western Visayas,city,13,14.3,FALSE,FALSE,
+Sipalay,Western Visayas,town,10,11.0,FALSE,FALSE,
+Cebu City,Cebu,large_city,17,18.7,FALSE,FALSE,
+Cebu IT Park,Cebu,district,6,6.6,FALSE,FALSE,
+Capitol Site Cebu,Cebu,district,6,6.6,FALSE,FALSE,
+Lahug Cebu,Cebu,district,7,7.7,FALSE,FALSE,
+Mactan,Cebu,island,15,16.5,FALSE,FALSE,
+Lapu-Lapu City,Cebu,city,12,13.2,FALSE,FALSE,on Mactan
+Mandaue,Cebu,city,10,11.0,FALSE,FALSE,
+Talisay City Cebu,Cebu,city,11,12.1,FALSE,FALSE,
+Oslob,Cebu,town,8,8.8,FALSE,FALSE,
+Moalboal,Cebu,town,8,8.8,FALSE,FALSE,
+Kawasan Falls,Cebu,landmark,5,5.5,FALSE,FALSE,
+Badian,Cebu,town,8,8.8,FALSE,FALSE,
+Bantayan Island,Cebu,island,20,22.0,FALSE,FALSE,~15km
+Malapascua Island,Cebu,island_small,7,7.7,FALSE,FALSE,~2km
+Tagbilaran,Bohol,small_city,10,11.0,FALSE,FALSE,
+Panglao,Bohol,island,15,16.5,FALSE,FALSE,
+Alona Beach Panglao,Bohol,landmark,5,5.5,FALSE,FALSE,
+Chocolate Hills,Bohol,region,15,16.5,TRUE,FALSE,region of hills - fail_open
+Loboc,Bohol,town,8,8.8,FALSE,FALSE,
+Anda,Bohol,town,9,9.9,FALSE,FALSE,
+Dumaguete,Negros & Siquijor,small_city,10,11.0,FALSE,FALSE,
+Apo Island,Negros & Siquijor,island_small,7,7.7,FALSE,FALSE,
+Siquijor,Negros & Siquijor,whole_island_province,30,33.0,TRUE,FALSE,whole island ~25km - fail_open
+Mambajao,Camiguin,town,8,8.8,FALSE,FALSE,capital
+White Island,Camiguin,landmark,5,5.5,FALSE,FALSE,sandbar
+Catarman,Camiguin,town,8,8.8,FALSE,FALSE,
+Davao City,Davao Region,very_large_city,30,33.0,FALSE,FALSE,one of world's largest by land area
+Lanang Davao,Davao Region,district,7,7.7,FALSE,FALSE,
+Poblacion Davao,Davao Region,district,7,7.7,FALSE,FALSE,
+Toril Davao,Davao Region,district,10,11.0,FALSE,FALSE,
+Buhangin Davao,Davao Region,district,8,8.8,FALSE,FALSE,
+Mount Apo,Davao Region,landmark,10,11.0,TRUE,FALSE,mountain area - fail_open
+Samal Island,Davao Region,island,35,38.5,TRUE,FALSE,large island ~30km - fail_open
+Siargao,Siargao & Surigao,whole_island,45,49.5,TRUE,FALSE,whole island ~40km - fail_open
+General Luna,Siargao & Surigao,town,8,8.8,FALSE,FALSE,on Siargao
+Cloud 9,Siargao & Surigao,landmark,5,5.5,FALSE,FALSE,surf spot
+Pacifico,Siargao & Surigao,village,7,7.7,FALSE,FALSE,
+Sugba Lagoon,Siargao & Surigao,landmark,5,5.5,FALSE,FALSE,
+Bucas Grande,Siargao & Surigao,island,15,16.5,FALSE,FALSE,
+Enchanted River,Siargao & Surigao,landmark,5,5.5,FALSE,FALSE,
+Britania Islands,Siargao & Surigao,island_group,10,11.0,FALSE,FALSE,
+Tablas,Romblon,island,55,60.5,TRUE,FALSE,large island ~50km - fail_open
+Romblon Island,Romblon,island,15,16.5,FALSE,FALSE,coords given: 12.5789N 122.2747E (12°34'44''N 122°16'29''E)
+Carabao Island,Romblon,island,9,9.9,FALSE,FALSE,

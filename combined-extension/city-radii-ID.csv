@@ -1,0 +1,52 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Ubud,Bali,town,11,,FALSE,FALSE,
+Kuta Bali,Bali,beach_town,9,,FALSE,FALSE,
+Seminyak,Bali,beach_town,9,,FALSE,FALSE,
+Uluwatu,Bali,region,12,,FALSE,FALSE,southern peninsula area
+Canggu,Bali,beach_town,10,,FALSE,FALSE,
+Berawa Canggu,Bali,district,7,,FALSE,FALSE,
+Pererenan Canggu,Bali,district,7,,FALSE,FALSE,
+Nusa Penida,Bali,island_large,25,22.0,FALSE,FALSE,whole island filter (decided)
+Nusa Lembongan,Bali,island,8,,FALSE,FALSE,~4km
+Sanur,Bali,beach_town,9,,FALSE,FALSE,
+Amed,Bali,beach_area,9,,FALSE,FALSE,
+Jimbaran Bali,Bali,beach_town,9,,FALSE,FALSE,
+Menteng Jakarta,Jakarta,district,8,,FALSE,FALSE,
+Kemang Jakarta,Jakarta,district,8,,FALSE,FALSE,
+Senopati Jakarta,Jakarta,district,7,,FALSE,FALSE,
+Kuningan Jakarta,Jakarta,district,8,,FALSE,FALSE,CBD area
+SCBD Jakarta,Jakarta,district,7,,FALSE,FALSE,Sudirman CBD
+Sudirman Jakarta,Jakarta,district,8,,FALSE,FALSE,
+Kelapa Gading Jakarta,Jakarta,district,9,,FALSE,FALSE,north Jakarta
+Pantai Indah Kapuk Jakarta,Jakarta,district,8,,FALSE,FALSE,PIK
+Pondok Indah Jakarta,Jakarta,district,8,,FALSE,FALSE,
+Jakarta,Jakarta,very_large_city,30,,FALSE,FALSE,~25km
+Malioboro Yogyakarta,Java,district,6,,FALSE,FALSE,main street
+Prawirotaman Yogyakarta,Java,district,6,,FALSE,FALSE,backpacker area
+Tugu Yogyakarta,Java,district,7,,FALSE,FALSE,
+Kraton Yogyakarta,Java,district,7,,FALSE,FALSE,palace district
+Yogyakarta,Java,city,13,,FALSE,FALSE,Jogja
+Borobudur,Java,landmark,7,,FALSE,FALSE,temple
+Prambanan,Java,landmark,7,,FALSE,FALSE,temple
+Dago Bandung,Java,district,8,,FALSE,FALSE,
+Cihampelas Bandung,Java,district,7,,FALSE,FALSE,
+Braga Bandung,Java,district,7,,FALSE,FALSE,
+Pasteur Bandung,Java,district,8,,FALSE,FALSE,
+Bandung,Java,large_city,18,,FALSE,FALSE,
+Mount Bromo,Java,landmark,12,,TRUE,FALSE,volcanic region - fail_open
+Malang,Java,city,13,,FALSE,FALSE,
+Gili Trawangan,Nusa Tenggara,island_small,7,,FALSE,FALSE,~3km
+Gili Air,Nusa Tenggara,island_small,6,,FALSE,FALSE,~2km
+Gili Meno,Nusa Tenggara,island_small,6,,FALSE,FALSE,~2km
+Lombok,Nusa Tenggara,whole_island,80,,TRUE,FALSE,~70km island - fail_open
+Kuta Lombok,Nusa Tenggara,beach_town,10,,FALSE,FALSE,south Lombok
+Senggigi,Nusa Tenggara,beach_town,10,,FALSE,FALSE,west Lombok
+Labuan Bajo,Nusa Tenggara,town,11,,FALSE,FALSE,Komodo gateway
+Komodo,Nusa Tenggara,islands_park,25,,TRUE,FALSE,Komodo National Park - fail_open
+Flores,Nusa Tenggara,whole_island,200,,TRUE,FALSE,Flores island ~350km long - fail_open MANDATORY
+Lake Toba,Sumatra,lake_region,55,,TRUE,FALSE,~100km lake - fail_open
+Bukit Lawang,Sumatra,village,9,,FALSE,FALSE,orangutan trekking
+Mentawai Islands,Sumatra,island_group,40,,TRUE,FALSE,large surf island group - fail_open
+Tana Toraja,Sulawesi,highland_region,30,,TRUE,FALSE,large highland region - fail_open
+Bunaken,Sulawesi,island_small,8,,FALSE,FALSE,~3km
+Raja Ampat,Papua,island_group,80,,TRUE,FALSE,massive archipelago - fail_open

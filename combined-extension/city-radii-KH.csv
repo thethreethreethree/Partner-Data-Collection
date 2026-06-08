@@ -1,0 +1,15 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Siem Reap,Siem Reap,small_city,12,,FALSE,FALSE,
+Angkor Wat,Siem Reap,landmark,8,,FALSE,FALSE,temple complex - extended buffer for area temples
+Pub Street Siem Reap,Siem Reap,district,6,,FALSE,FALSE,tourist street
+Wat Bo Siem Reap,Siem Reap,district,7,,FALSE,FALSE,village area
+Phnom Penh,Phnom Penh,large_city,16,,FALSE,FALSE,
+BKK1 Phnom Penh,Phnom Penh,district,7,,FALSE,FALSE,expat district
+Riverside Phnom Penh,Phnom Penh,district,7,,FALSE,FALSE,
+Toul Tom Poung Phnom Penh,Phnom Penh,district,7,,FALSE,FALSE,Russian Market
+Sihanoukville,Coast,city,12,,FALSE,FALSE,
+Koh Rong,Coast,island,15,,FALSE,FALSE,~10km island
+Koh Rong Samloem,Coast,island,10,,FALSE,FALSE,~6km island
+Kampot,Coast,town,10,,FALSE,FALSE,
+Kep,Coast,town,9,,FALSE,FALSE,
+Battambang,Northwest,small_city,11,,FALSE,FALSE,

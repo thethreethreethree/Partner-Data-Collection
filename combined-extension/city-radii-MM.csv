@@ -1,0 +1,16 @@
+name,region,proposed_type,proposed_radius_km,your_radius_km,fail_open,needs_decision,notes
+Downtown Yangon,Yangon,district,8,,FALSE,FALSE,colonial core
+Bahan Yangon,Yangon,district,7,,FALSE,FALSE,
+Kamayut Yangon,Yangon,district,7,,FALSE,FALSE,
+Sanchaung Yangon,Yangon,district,7,,FALSE,FALSE,
+Yangon,Yangon,large_city,18,,FALSE,FALSE,
+Chanmyathazi Mandalay,Mandalay,district,7,,FALSE,FALSE,
+Aungmyethazan Mandalay,Mandalay,district,8,,FALSE,FALSE,
+Mandalay,Mandalay,large_city,16,,FALSE,FALSE,
+Bagan,Other Destinations,heritage_region,15,,TRUE,FALSE,temple plain ~40 sqkm - fail_open recommended
+Old Bagan,Other Destinations,district,7,,FALSE,FALSE,inner archaeological zone
+New Bagan,Other Destinations,district,7,,FALSE,FALSE,
+Nyaung-U,Other Destinations,town,8,,FALSE,FALSE,Bagan's main town
+Inle Lake,Other Destinations,lake_region,25,,TRUE,FALSE,~22km long lake - fail_open
+Nyaungshwe,Other Destinations,town,8,,FALSE,FALSE,gateway to Inle Lake
+Ngapali Beach,Other Destinations,beach_strip,11,,FALSE,FALSE,~7km coastal area
